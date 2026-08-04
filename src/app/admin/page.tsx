@@ -17,7 +17,13 @@ export const metadata: Metadata = {
 const PAGE_SIZE = 25;
 
 /** Statuses that still need the operator to do something. */
-const OPEN_STATUSES: BookingStatus[] = ["requested", "confirmed", "assigned", "en_route"];
+const OPEN_STATUSES: BookingStatus[] = [
+  "requested",
+  "awaiting_confirmation",
+  "confirmed",
+  "assigned",
+  "en_route",
+];
 
 function startOfToday(): Date {
   const d = new Date();
@@ -86,7 +92,13 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
       db
         .select({ pendingCount: count() })
         .from(bookings)
-        .where(inArray(bookings.status, ["requested", "confirmed"])),
+        .where(
+          inArray(bookings.status, [
+            "requested",
+            "awaiting_confirmation",
+            "confirmed",
+          ]),
+        ),
 
       db
         .select({ weekCount: count() })

@@ -22,6 +22,13 @@
       "when": 1785847574807,
       "tag": "0002_white_wilson_fisk",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1785848756475,
+      "tag": "0003_skinny_luckman",
+      "breakpoints": true
     }
   ]
 }

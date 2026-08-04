@@ -67,7 +67,11 @@ export async function assignDriver(formData: FormData) {
     .where(
       and(
         eq(bookings.id, bookingId),
-        inArray(bookings.status, ["requested", "confirmed"]),
+        inArray(bookings.status, [
+          "requested",
+          "awaiting_confirmation",
+          "confirmed",
+        ]),
       ),
     );
 

@@ -30,7 +30,8 @@ export const metadata: Metadata = {
 
 /** Which statuses the operator can move to from where they are. */
 const NEXT_STATUSES: Record<BookingStatus, BookingStatus[]> = {
-  requested: ["confirmed", "cancelled"],
+  requested: ["awaiting_confirmation", "confirmed", "cancelled"],
+  awaiting_confirmation: ["confirmed", "cancelled"],
   confirmed: ["assigned", "cancelled"],
   assigned: ["en_route", "completed", "cancelled"],
   en_route: ["completed", "cancelled"],

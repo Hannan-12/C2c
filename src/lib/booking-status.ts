@@ -19,6 +19,11 @@ export const TIMELINE: {
     copy: "We have your trip details and are checking availability.",
   },
   {
+    status: "awaiting_confirmation",
+    label: "Awaiting your confirmation",
+    copy: "We've messaged you on WhatsApp to confirm the details.",
+  },
+  {
     status: "confirmed",
     label: "Booking confirmed",
     copy: "Your ride is confirmed. We're allocating a driver.",
@@ -46,6 +51,7 @@ export function timelineIndex(status: BookingStatus): number {
 
 export const STATUS_LABEL: Record<BookingStatus, string> = {
   requested: "Request received",
+  awaiting_confirmation: "Awaiting customer",
   confirmed: "Confirmed",
   assigned: "Driver assigned",
   en_route: "On the way",

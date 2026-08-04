@@ -33,11 +33,14 @@ export const VEHICLE_CATEGORIES = [
 
 /**
  * docs Section 5 — booking status.
- * Rev 2 removed `awaiting_confirmation`; per Section 3 it is the same state as
- * `requested`. Flagged in docs 11.2 pending client confirmation.
+ *
+ * `requested` = submitted by the customer, not yet actioned.
+ * `awaiting_confirmation` = admin has contacted the customer and is waiting on
+ * their reply. Confirmed as a distinct state by the client.
  */
 export const BOOKING_STATUSES = [
   "requested",
+  "awaiting_confirmation",
   "confirmed",
   "assigned",
   "en_route",
