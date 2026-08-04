@@ -15,6 +15,13 @@
       "when": 1785836244268,
       "tag": "0001_fluffy_rhino",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1785847574807,
+      "tag": "0002_white_wilson_fisk",
+      "breakpoints": true
     }
   ]
 }

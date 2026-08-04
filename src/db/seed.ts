@@ -21,7 +21,9 @@ async function main() {
   // Imported dynamically: a static import would be hoisted above
   // loadEnvConfig, and the db module reads DATABASE_URL at module scope.
   const { db } = await import("./index");
-  const { vehiclePricing } = await import("./schema");
+  const { vehiclePricing, adminUsers } = await import("./schema");
+  const { hashPassword } = await import("../lib/password");
+  const { randomUUID } = await import("crypto");
 
   for (const rate of RATES) {
     await db
@@ -31,6 +33,35 @@ async function main() {
   }
 
   console.log(`Seeded ${RATES.length} vehicle pricing rows.`);
+
+  // Admin account. Idempotent: an existing account keeps its current password
+  // rather than being silently reset on every seed run.
+  const email = process.env.ADMIN_EMAIL;
+  const password = process.env.ADMIN_PASSWORD;
+
+  if (!email || !password) {
+    console.warn("ADMIN_EMAIL / ADMIN_PASSWORD not set — skipping admin seed.");
+  } else {
+    const { eq } = await import("drizzle-orm");
+    const [existing] = await db
+      .select({ id: adminUsers.id })
+      .from(adminUsers)
+      .where(eq(adminUsers.email, email))
+      .limit(1);
+
+    if (existing) {
+      console.log(`Admin ${email} already exists — left unchanged.`);
+    } else {
+      await db.insert(adminUsers).values({
+        id: randomUUID(),
+        email,
+        passwordHash: await hashPassword(password),
+        name: "Administrator",
+        active: true,
+      });
+      console.log(`Seeded admin account: ${email}`);
+    }
+  }
   process.exit(0);
 }
 

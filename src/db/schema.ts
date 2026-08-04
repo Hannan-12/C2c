@@ -118,6 +118,26 @@ export const bookings = mysqlTable(
 );
 
 /**
+ * Admin accounts for the dashboard (docs Section 8).
+ *
+ * A table rather than a single set of environment variables, so the client can
+ * have more than one operator and a password can be rotated without a redeploy.
+ * Seeded from ADMIN_EMAIL / ADMIN_PASSWORD on first run.
+ */
+export const adminUsers = mysqlTable("admin_users", {
+  id: char("id", { length: 36 }).primaryKey(),
+  email: varchar("email", { length: 320 }).notNull().unique(),
+  /** scrypt, stored as `salt:derivedKey` — never a plaintext password. */
+  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
+  name: varchar("name", { length: 200 }),
+  active: boolean("active").notNull().default(true),
+  lastLoginAt: datetime("last_login_at"),
+  createdAt: datetime("created_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});
+
+/**
  * Fare rates per vehicle category.
  *
  * Held in the database rather than in code because this is the value most
