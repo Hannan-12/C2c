@@ -5,6 +5,7 @@ import { bookings } from "@/db/schema";
 import { createBookingSchema } from "@/lib/validation/booking";
 import { generateReferenceCode } from "@/lib/reference-code";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { calculateQuote } from "@/lib/quote";
 
 /** Booking submission is a write from an anonymous visitor — cap it per IP. */
 const SUBMIT_LIMIT = 10;
@@ -52,7 +53,26 @@ export async function POST(req: Request) {
 
   const input = parsed.data;
 
-  // Distance, duration and fare are filled in by the quote engine (M4).
+  // Recalculated server-side rather than accepted from the request: the fare
+  // the client displays is not authoritative and must not be trusted.
+  //
+  // A quote failure does not block the booking. The whole flow is a request
+  // that an admin confirms manually (docs Section 3), so a Maps outage should
+  // cost the client a fare estimate, not the lead.
+  let quote: Awaited<ReturnType<typeof calculateQuote>> | null = null;
+  try {
+    quote = await calculateQuote({
+      serviceType: input.serviceType,
+      vehicleCategory: input.vehicleCategory,
+      pickupLocation: input.pickupLocation,
+      dropoffLocation: input.dropoffLocation,
+      stops: input.stops?.map((s) => s.address),
+      durationHours: input.durationHours,
+    });
+  } catch (error) {
+    console.error("Quote failed during booking creation:", error);
+  }
+
   const row = {
     id: randomUUID(),
     serviceType: input.serviceType,
@@ -72,6 +92,9 @@ export async function POST(req: Request) {
     customerName: input.customerName,
     customerWhatsapp: input.customerWhatsapp,
     customerEmail: input.customerEmail ?? null,
+    distanceKm: quote?.distanceKm?.toString() ?? null,
+    durationMin: quote?.durationMin ?? null,
+    fareEstimate: quote?.fareEstimate.toString() ?? null,
     status: "requested" as const,
   };
 
@@ -84,6 +107,10 @@ export async function POST(req: Request) {
           referenceCode,
           status: row.status,
           pickupDatetime: row.pickupDatetime.toISOString(),
+          distanceKm: quote?.distanceKm ?? null,
+          durationMin: quote?.durationMin ?? null,
+          fareEstimate: quote?.fareEstimate ?? null,
+          currency: quote?.currency ?? null,
         },
         { status: 201 },
       );

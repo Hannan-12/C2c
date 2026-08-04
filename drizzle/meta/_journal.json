@@ -8,6 +8,13 @@
       "when": 1785835205543,
       "tag": "0000_open_captain_flint",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1785836244268,
+      "tag": "0001_fluffy_rhino",
+      "breakpoints": true
     }
   ]
 }

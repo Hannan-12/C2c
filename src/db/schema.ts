@@ -117,6 +117,31 @@ export const bookings = mysqlTable(
   ],
 );
 
+/**
+ * Fare rates per vehicle category.
+ *
+ * Held in the database rather than in code because this is the value most
+ * likely to change after client feedback, and the client must be able to
+ * change it without a redeploy (docs Section 6).
+ */
+export const vehiclePricing = mysqlTable("vehicle_pricing", {
+  category: mysqlEnum("category", VEHICLE_CATEGORIES).primaryKey(),
+  /** Flat charge applied to every trip. */
+  baseFare: decimal("base_fare", { precision: 10, scale: 2 }).notNull(),
+  perKm: decimal("per_km", { precision: 10, scale: 2 }).notNull(),
+  perMin: decimal("per_min", { precision: 10, scale: 2 }).notNull(),
+  /** Floor for distance-based fares — short trips never bill below this. */
+  minimumFare: decimal("minimum_fare", { precision: 10, scale: 2 }).notNull(),
+  /** Used for hourly bookings, which have a duration instead of a route. */
+  hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).notNull().default("AED"),
+  active: boolean("active").notNull().default(true),
+  updatedAt: datetime("updated_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`)
+    .$onUpdate(() => new Date()),
+});
+
 export const drivers = mysqlTable(
   "drivers",
   {
@@ -160,3 +185,6 @@ export type NewBooking = typeof bookings.$inferInsert;
 export type Driver = typeof drivers.$inferSelect;
 export type NewDriver = typeof drivers.$inferInsert;
 export type BookingAssignment = typeof bookingAssignments.$inferSelect;
+export type VehiclePricing = typeof vehiclePricing.$inferSelect;
+export type VehicleCategory = (typeof VEHICLE_CATEGORIES)[number];
+export type ServiceType = (typeof SERVICE_TYPES)[number];
