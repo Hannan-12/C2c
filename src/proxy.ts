@@ -4,11 +4,14 @@ import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 /**
  * Gate for the admin dashboard.
  *
+ * Renamed from `middleware.ts` in Next 16, which deprecated that convention.
+ *
  * This is the outer guard only — each admin page and server action verifies
- * the session again. Middleware alone is not an authorisation boundary, since
- * a route added outside the matcher would silently become public.
+ * the session again. Proxy runs at a network boundary in front of the app and
+ * is not an authorisation boundary on its own: a route added outside the
+ * matcher would silently become public.
  */
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const token = req.cookies.get(SESSION_COOKIE)?.value;
   const session = await verifySessionToken(token);
 

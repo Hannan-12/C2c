@@ -57,7 +57,7 @@ export function BookingDock() {
   return (
     <aside
       className="bg-dock text-ink-inverse flex flex-col lg:h-screen lg:sticky lg:top-0
-                 lg:overflow-y-auto w-full lg:w-[360px] xl:w-[400px] shrink-0 px-7 py-8"
+                 lg:overflow-y-auto w-full lg:w-90 xl:w-100 shrink-0 px-7 py-8"
     >
       <Link href="/" className="flex items-center gap-2.5 mb-8">
         <span className="size-2 rounded-full bg-accent" aria-hidden />
@@ -72,7 +72,10 @@ export function BookingDock() {
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={`rounded-field px-3.5 py-2.5 text-sm transition-colors ${
+              className={`rounded-field px-3.5 py-2.5 text-sm
+                transition-[background-color,color,transform] duration-200
+                [transition-timing-function:var(--ease-out-soft)]
+                hover:translate-x-0.5 ${
                 active
                   ? "bg-dock-active text-accent font-semibold"
                   : "text-ink-inverse/70 hover:text-ink-inverse hover:bg-white/5"
@@ -113,7 +116,7 @@ export function BookingDock() {
 
           <form onSubmit={handleQuickSubmit} className="flex flex-col gap-2.5">
             <div>
-              <label className="field-label !text-ink-inverse/45" htmlFor="dock-pickup">
+              <label className="field-label-dark" htmlFor="dock-pickup">
                 From
               </label>
               <input
@@ -128,7 +131,7 @@ export function BookingDock() {
 
             {!isHourly && (
               <div>
-                <label className="field-label !text-ink-inverse/45" htmlFor="dock-dropoff">
+                <label className="field-label-dark" htmlFor="dock-dropoff">
                   To
                 </label>
                 <input
@@ -144,7 +147,7 @@ export function BookingDock() {
 
             <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className="field-label !text-ink-inverse/45" htmlFor="dock-date">
+                <label className="field-label-dark" htmlFor="dock-date">
                   Date
                 </label>
                 <input
@@ -153,12 +156,12 @@ export function BookingDock() {
                   value={date}
                   min={new Date().toISOString().slice(0, 10)}
                   onChange={(e) => setDate(e.target.value)}
-                  className="field-input-dark [color-scheme:dark]"
+                  className="field-input-dark scheme-dark"
                   required
                 />
               </div>
               <div>
-                <label className="field-label !text-ink-inverse/45" htmlFor="dock-time">
+                <label className="field-label-dark" htmlFor="dock-time">
                   Time
                 </label>
                 <input
@@ -166,7 +169,7 @@ export function BookingDock() {
                   type="time"
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
-                  className="field-input-dark [color-scheme:dark]"
+                  className="field-input-dark scheme-dark"
                   required
                 />
               </div>

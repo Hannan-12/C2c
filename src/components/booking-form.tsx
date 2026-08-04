@@ -204,7 +204,10 @@ export function BookingForm() {
               role="tab"
               aria-selected={active}
               onClick={() => setServiceType(tab.id)}
-              className={`rounded-full px-5 py-2.5 text-sm font-medium transition-colors ${
+              className={`rounded-full px-5 py-2.5 text-sm font-medium
+                transition-[background-color,color,border-color,transform] duration-200
+                [transition-timing-function:var(--ease-out-soft)]
+                hover:-translate-y-0.5 active:translate-y-0 ${
                 active
                   ? "bg-ink text-ink-inverse"
                   : "bg-surface text-ink-muted border border-line hover:border-ink-faint"
@@ -318,10 +321,13 @@ export function BookingForm() {
                 type="button"
                 aria-pressed={active}
                 onClick={() => setVehicleCategory(vehicle.id)}
-                className={`rounded-field border px-3 py-4 text-center transition-colors ${
+                className={`rounded-field border px-3 py-4 text-center
+                  transition-[background-color,border-color,transform,box-shadow] duration-200
+                  [transition-timing-function:var(--ease-out-soft)]
+                  hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${
                   active
-                    ? "border-accent bg-accent-soft"
-                    : "border-line bg-surface hover:border-ink-faint"
+                    ? "border-accent bg-accent-soft shadow-[var(--shadow-lift)]"
+                    : "border-line bg-surface hover:border-accent/60 hover:shadow-[var(--shadow-lift)]"
                 }`}
               >
                 <span className="block text-xl mb-1.5" aria-hidden>
@@ -460,6 +466,27 @@ export function BookingForm() {
  * Running trip summary. Carries over the live-fare behaviour the Split Dock
  * held in docs Section 13.2, as a sticky card beside the form.
  */
+function AnimatedFare({
+  amount,
+  currency,
+  loading,
+}: {
+  amount: number | null;
+  currency: string;
+  loading: boolean;
+}) {
+  // Re-keying on the value restarts the animation, so a recalculated fare
+  // visibly changes rather than silently swapping.
+  return (
+    <span
+      key={amount ?? "none"}
+      className={amount != null ? "animate-pop inline-block" : "inline-block"}
+    >
+      {loading ? "…" : amount != null ? formatFare(amount, currency) : "—"}
+    </span>
+  );
+}
+
 function TripSummary({
   from,
   to,
@@ -490,7 +517,7 @@ function TripSummary({
     .join(" · ");
 
   return (
-    <aside className="lg:sticky lg:top-6 rounded-card bg-dock text-ink-inverse p-5">
+    <aside className="animate-rise lg:sticky lg:top-6 rounded-card bg-dock text-ink-inverse p-5">
       <h2 className="text-sm font-bold uppercase tracking-[0.06em] mb-4">
         Trip summary
       </h2>
@@ -505,11 +532,11 @@ function TripSummary({
         <div className="mt-4 pt-4 border-t border-dock-border flex items-baseline justify-between">
           <dt className="text-ink-inverse/55">Estimated</dt>
           <dd className="text-xl font-bold text-accent">
-            {loading
-              ? "…"
-              : quote
-                ? formatFare(quote.fareEstimate, quote.currency)
-                : "—"}
+            <AnimatedFare
+              amount={quote?.fareEstimate ?? null}
+              currency={quote?.currency ?? "AED"}
+              loading={loading}
+            />
           </dd>
         </div>
       </dl>

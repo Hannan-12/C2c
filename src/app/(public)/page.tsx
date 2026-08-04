@@ -49,14 +49,27 @@ const STEPS = [
 
 export default function HomePage() {
   return (
-    <div className="px-6 sm:px-10 lg:px-14 py-10 lg:py-14">
-      <section className="grid xl:grid-cols-[minmax(0,1fr)_400px] gap-10 xl:gap-14 items-start">
+    <div className="relative px-6 sm:px-10 lg:px-14 py-10 lg:py-14">
+      {/* Ambient warmth behind the hero. Purely decorative, never interactive. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-40 -left-32 size-[38rem]
+                   rounded-full bg-accent/12 blur-3xl animate-drift"
+      />
+
+      <section className="relative grid xl:grid-cols-[minmax(0,1fr)_400px] gap-10 xl:gap-14 items-start">
         <div className="max-w-xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint mb-6">
+          <p
+            className="animate-rise text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint mb-6"
+            style={{ animationDelay: "40ms" }}
+          >
             Chauffeur service · United Arab Emirates
           </p>
 
-          <h1 className="display text-[2.75rem] sm:text-6xl leading-[0.95] mb-6">
+          <h1
+            className="animate-rise display text-[2.75rem] sm:text-6xl leading-[0.95] mb-6"
+            style={{ animationDelay: "120ms" }}
+          >
             Booked by you.
             <br />
             Confirmed by
@@ -64,13 +77,19 @@ export default function HomePage() {
             <span className="text-accent-strong">a person.</span>
           </h1>
 
-          <p className="text-ink-muted text-lg leading-relaxed mb-8">
+          <p
+            className="animate-rise text-ink-muted text-lg leading-relaxed mb-8"
+            style={{ animationDelay: "220ms" }}
+          >
             No dispatch algorithm deciding who turns up. Send us your route and
             someone confirms the driver, the car and the fare with you directly —
             usually within the hour.
           </p>
 
-          <div className="flex flex-wrap gap-3">
+          <div
+            className="animate-rise flex flex-wrap gap-3"
+            style={{ animationDelay: "320ms" }}
+          >
             <Link href="/book" className="btn-primary">
               Book a ride
             </Link>
@@ -80,17 +99,19 @@ export default function HomePage() {
           </div>
         </div>
 
-        <Suspense
-          fallback={
-            <div className="rounded-card bg-dock h-105 animate-pulse" aria-hidden />
-          }
-        >
-          <RouteBoard />
-        </Suspense>
+        <div className="animate-rise" style={{ animationDelay: "420ms" }}>
+          <Suspense
+            fallback={
+              <div className="rounded-card bg-dock h-105 animate-pulse" aria-hidden />
+            }
+          >
+            <RouteBoard />
+          </Suspense>
+        </div>
       </section>
 
       {/* Ruled index rather than cards — different rhythm from the board above. */}
-      <section className="mt-20" aria-labelledby="services-heading">
+      <section className="reveal mt-20" aria-labelledby="services-heading">
         <h2 id="services-heading" className="display text-2xl sm:text-3xl mb-1.5">
           What we run
         </h2>
@@ -104,7 +125,10 @@ export default function HomePage() {
               <Link
                 href={service.href}
                 className="group grid sm:grid-cols-[220px_1fr_auto] items-baseline gap-x-6 gap-y-1
-                           border-b border-line py-5 hover:bg-surface/70 transition-colors"
+                           border-b border-line py-5 px-3 -mx-3 rounded-field
+                           transition-[background-color,transform] duration-300
+                           [transition-timing-function:var(--ease-out-soft)]
+                           hover:bg-surface hover:translate-x-1"
               >
                 <span className="display text-lg group-hover:text-accent-strong transition-colors">
                   {service.label}
@@ -116,7 +140,9 @@ export default function HomePage() {
                   </span>
                 </span>
                 <span
-                  className="hidden sm:block text-ink-faint group-hover:text-accent transition-colors"
+                  className="hidden sm:block text-ink-faint transition-[color,transform]
+                             duration-300 [transition-timing-function:var(--ease-out-soft)]
+                             group-hover:text-accent group-hover:translate-x-1.5"
                   aria-hidden
                 >
                   →
@@ -127,7 +153,7 @@ export default function HomePage() {
         </ul>
       </section>
 
-      <section className="mt-20" aria-labelledby="fleet-heading">
+      <section className="reveal mt-20" aria-labelledby="fleet-heading">
         <h2 id="fleet-heading" className="display text-2xl sm:text-3xl mb-1.5">
           The fleet
         </h2>
@@ -158,7 +184,10 @@ export default function HomePage() {
             </thead>
             <tbody>
               {FLEET.map((vehicle) => (
-                <tr key={vehicle.label} className="border-t border-dock-border">
+                <tr
+                  key={vehicle.label}
+                  className="border-t border-dock-border transition-colors duration-200 hover:bg-white/5"
+                >
                   <th
                     scope="row"
                     className="text-left font-medium px-5 sm:px-6 py-3.5"
@@ -182,7 +211,7 @@ export default function HomePage() {
       </section>
 
       {/* Numbered because the order is real — each step depends on the last. */}
-      <section className="mt-20 mb-6" aria-labelledby="how-heading">
+      <section className="reveal mt-20 mb-6" aria-labelledby="how-heading">
         <h2 id="how-heading" className="display text-2xl sm:text-3xl mb-7">
           How a booking works
         </h2>

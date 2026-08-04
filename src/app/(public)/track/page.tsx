@@ -24,13 +24,13 @@ export default async function TrackLookupPage({
   return (
     <div className="px-6 sm:px-10 lg:px-14 py-10 lg:py-14">
       <div className="max-w-lg">
-        <h1 className="display text-3xl sm:text-4xl mb-2">Track your booking</h1>
+        <h1 className="animate-rise display text-3xl sm:text-4xl mb-2">Track your booking</h1>
         <p className="text-ink-muted mb-8">
           Enter the reference code from your confirmation message — it looks like{" "}
           <span className="font-mono text-ink">C2C-7K4M2XQP</span>.
         </p>
 
-        <form action={lookup} className="card">
+        <form action={lookup} className="card animate-rise">
           <label className="field-label" htmlFor="reference">
             Booking reference
           </label>

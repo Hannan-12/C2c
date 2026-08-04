@@ -89,7 +89,7 @@ export default async function TrackingPage({
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint mb-2">
             Booking reference
           </p>
-          <h1 className="display text-3xl sm:text-4xl font-mono">
+          <h1 className="animate-rise display text-3xl sm:text-4xl font-mono">
             {booking.referenceCode}
           </h1>
         </div>
@@ -123,7 +123,8 @@ export default async function TrackingPage({
                 return (
                   <li
                     key={step.status}
-                    className="flex gap-4 pb-6 last:pb-0 relative"
+                    className="animate-rise flex gap-4 pb-6 last:pb-0 relative"
+                    style={{ animationDelay: `${i * 70}ms` }}
                     aria-current={active ? "step" : undefined}
                   >
                     {i < TIMELINE.length - 1 && (
@@ -141,7 +142,7 @@ export default async function TrackingPage({
                                     done
                                       ? "bg-accent text-ink"
                                       : active
-                                        ? "bg-dock text-accent ring-4 ring-accent-soft"
+                                        ? "bg-dock text-accent ring-4 ring-accent-soft animate-pop"
                                         : "bg-field text-ink-faint"
                                   }`}
                       aria-hidden
@@ -223,7 +224,7 @@ export default async function TrackingPage({
 
         <aside className="lg:sticky lg:top-6 flex flex-col gap-4">
           {booking.driver ? (
-            <section className="rounded-card bg-dock text-ink-inverse p-5">
+            <section className="animate-rise rounded-card bg-dock text-ink-inverse p-5">
               <h2 className="text-sm font-bold uppercase tracking-widest mb-4">
                 Your driver
               </h2>
@@ -266,7 +267,7 @@ export default async function TrackingPage({
             )}
             target="_blank"
             rel="noopener noreferrer"
-            className="card hover:border-accent transition-colors"
+            className="card card-interactive"
           >
             <span className="block font-semibold mb-0.5">Need to change something?</span>
             <span className="block text-sm text-ink-muted">
