@@ -1,0 +1,162 @@
+import {
+  mysqlTable,
+  char,
+  varchar,
+  int,
+  decimal,
+  datetime,
+  boolean,
+  json,
+  text,
+  mysqlEnum,
+  index,
+} from "drizzle-orm/mysql-core";
+import { sql } from "drizzle-orm";
+
+/** docs Section 5 — service_type */
+export const SERVICE_TYPES = [
+  "ride",
+  "hourly",
+  "city_tour",
+  "airport",
+  "courier",
+] as const;
+
+/** docs Section 5 — vehicle_category */
+export const VEHICLE_CATEGORIES = [
+  "comfort",
+  "business",
+  "suv",
+  "vip",
+  "van",
+] as const;
+
+/**
+ * docs Section 5 — booking status.
+ * Rev 2 removed `awaiting_confirmation`; per Section 3 it is the same state as
+ * `requested`. Flagged in docs 11.2 pending client confirmation.
+ */
+export const BOOKING_STATUSES = [
+  "requested",
+  "confirmed",
+  "assigned",
+  "en_route",
+  "completed",
+  "cancelled",
+] as const;
+
+/** An intermediate stop on a multi-leg trip. Stored in `bookings.stops`. */
+export type BookingStop = {
+  address: string;
+  lat?: number;
+  lng?: number;
+};
+
+export const bookings = mysqlTable(
+  "bookings",
+  {
+    id: char("id", { length: 36 }).primaryKey(),
+
+    /**
+     * Public-facing code, e.g. C2C-7K4M2XQP.
+     * Long and random by design — the tracking page is unauthenticated and
+     * returns customer PII, so a short sequential code would let the whole
+     * customer list be enumerated. See docs Section 5.1.
+     */
+    referenceCode: varchar("reference_code", { length: 16 }).notNull().unique(),
+
+    serviceType: mysqlEnum("service_type", SERVICE_TYPES).notNull(),
+
+    pickupLocation: varchar("pickup_location", { length: 500 }).notNull(),
+    pickupLat: decimal("pickup_lat", { precision: 10, scale: 7 }),
+    pickupLng: decimal("pickup_lng", { precision: 10, scale: 7 }),
+
+    /** Null for hourly bookings, which have a duration instead of a destination. */
+    dropoffLocation: varchar("dropoff_location", { length: 500 }),
+    dropoffLat: decimal("dropoff_lat", { precision: 10, scale: 7 }),
+    dropoffLng: decimal("dropoff_lng", { precision: 10, scale: 7 }),
+
+    stops: json("stops").$type<BookingStop[]>(),
+
+    pickupDatetime: datetime("pickup_datetime").notNull(),
+
+    /** Hourly bookings only. */
+    durationHours: int("duration_hours"),
+
+    /** Airport rides only. */
+    flightNumber: varchar("flight_number", { length: 20 }),
+
+    vehicleCategory: mysqlEnum("vehicle_category", VEHICLE_CATEGORIES).notNull(),
+    passengerCount: int("passenger_count").notNull(),
+    luggageCount: int("luggage_count").notNull().default(0),
+
+    /** Auto-calculated from the Routes API at quote time. */
+    distanceKm: decimal("distance_km", { precision: 8, scale: 2 }),
+    durationMin: int("duration_min"),
+    fareEstimate: decimal("fare_estimate", { precision: 10, scale: 2 }),
+
+    customerName: varchar("customer_name", { length: 200 }).notNull(),
+    customerWhatsapp: varchar("customer_whatsapp", { length: 30 }).notNull(),
+    customerEmail: varchar("customer_email", { length: 320 }),
+
+    status: mysqlEnum("status", BOOKING_STATUSES).notNull().default("requested"),
+
+    createdAt: datetime("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: datetime("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`)
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    // Admin dashboard filters by status and sorts by date (docs Section 8).
+    index("bookings_status_idx").on(t.status),
+    index("bookings_pickup_datetime_idx").on(t.pickupDatetime),
+    index("bookings_created_at_idx").on(t.createdAt),
+  ],
+);
+
+export const drivers = mysqlTable(
+  "drivers",
+  {
+    id: char("id", { length: 36 }).primaryKey(),
+    name: varchar("name", { length: 200 }).notNull(),
+    whatsappNumber: varchar("whatsapp_number", { length: 30 }).notNull(),
+    vehicleAssigned: varchar("vehicle_assigned", { length: 200 }),
+    /** Only active drivers appear in the assignment dropdown. */
+    active: boolean("active").notNull().default(true),
+    createdAt: datetime("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (t) => [index("drivers_active_idx").on(t.active)],
+);
+
+export const bookingAssignments = mysqlTable(
+  "booking_assignments",
+  {
+    id: char("id", { length: 36 }).primaryKey(),
+    bookingId: char("booking_id", { length: 36 })
+      .notNull()
+      .references(() => bookings.id, { onDelete: "cascade" }),
+    driverId: char("driver_id", { length: 36 })
+      .notNull()
+      .references(() => drivers.id),
+    assignedAt: datetime("assigned_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    /** Free-text admin note, e.g. "confirmed via WhatsApp at 3:40pm". */
+    notes: text("notes"),
+  },
+  (t) => [
+    index("assignments_booking_idx").on(t.bookingId),
+    index("assignments_driver_idx").on(t.driverId),
+  ],
+);
+
+export type Booking = typeof bookings.$inferSelect;
+export type NewBooking = typeof bookings.$inferInsert;
+export type Driver = typeof drivers.$inferSelect;
+export type NewDriver = typeof drivers.$inferInsert;
+export type BookingAssignment = typeof bookingAssignments.$inferSelect;

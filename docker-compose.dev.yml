@@ -1,0 +1,25 @@
+# Local development database only.
+# Production uses the MySQL instance included with Hostinger Business hosting;
+# pre-launch staging uses a free hosted MySQL (see docs Section 12.4).
+services:
+  db:
+    image: mysql:8.0
+    container_name: ride-booking-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: devroot
+      MYSQL_DATABASE: ride_booking
+      MYSQL_USER: ride
+      MYSQL_PASSWORD: devpass
+    ports:
+      - "3307:3306"
+    volumes:
+      - ride-booking-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pdevroot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  ride-booking-db-data:

@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1785835205543,
+      "tag": "0000_open_captain_flint",
+      "breakpoints": true
+    }
+  ]
+}
