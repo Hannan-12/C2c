@@ -1,26 +1,94 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/**
+ * Split Dock design tokens — the client-approved direction (docs Section 13).
+ *
+ * Warm neutrals rather than pure greys: the approved mockups sit on a cream
+ * page with a near-black dock, and true #000/#fff reads cold against them.
+ */
+@theme {
+  --color-dock: #1c1a19;
+  --color-dock-raised: #262320;
+  --color-dock-active: #3a2e1c;
+  --color-dock-border: #332f2b;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-canvas: #f7f4ef;
+  --color-surface: #ffffff;
+  --color-field: #f5f2ec;
+
+  --color-ink: #1c1a19;
+  --color-ink-muted: #6f6862;
+  --color-ink-faint: #9c948c;
+  --color-ink-inverse: #f2ede6;
+
+  --color-accent: #eba43c;
+  --color-accent-strong: #d98f22;
+  --color-accent-soft: #fdf3e2;
+
+  --color-line: #e6e0d7;
+  --color-whatsapp: #25d366;
+
+  --radius-card: 14px;
+  --radius-field: 9px;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-display);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Figures in the route board and fare tables must align in columns. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+html {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@layer components {
+  .field-label {
+    @apply block text-[10px] font-semibold uppercase tracking-[0.09em] text-ink-faint mb-1.5;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  .field-input {
+    @apply w-full rounded-field bg-field px-3.5 py-2.5 text-sm text-ink
+           placeholder:text-ink-faint border border-transparent
+           focus:border-accent focus:bg-surface transition-colors;
+  }
+
+  /* Fields sitting on the dark dock need their own treatment. */
+  .field-input-dark {
+    @apply w-full rounded-field bg-white/6 px-3.5 py-2.5 text-sm text-ink-inverse
+           placeholder:text-ink-inverse/40 border border-white/10
+           focus:border-accent focus:bg-white/10 transition-colors;
+  }
+
+  .card {
+    @apply rounded-card bg-surface border border-line p-5 sm:p-6;
+  }
+
+  /* Headings carry the display face; body copy deliberately does not. */
+  .display {
+    font-family: var(--font-display), var(--font-geist-sans), sans-serif;
+    @apply font-extrabold tracking-[-0.025em];
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-field bg-accent px-6 py-3
+           text-sm font-semibold text-ink hover:bg-accent-strong
+           disabled:opacity-60 disabled:cursor-not-allowed transition-colors;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-field border border-line
+           bg-surface px-6 py-3 text-sm font-semibold text-ink
+           hover:border-ink-faint transition-colors;
+  }
 }
