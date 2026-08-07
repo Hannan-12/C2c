@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { whatsappLink } from "@/lib/format";
+import Image from "next/image";
 import { BRAND } from "@/lib/seo";
 import type { ServiceType } from "@/db/schema";
 
@@ -61,7 +62,14 @@ export function BookingDock() {
                  lg:overflow-y-auto w-full lg:w-90 xl:w-100 shrink-0 px-7 py-8"
     >
       <Link href="/" className="flex items-center gap-2.5 mb-8">
-        <span className="size-2 rounded-full bg-accent" aria-hidden />
+        <Image
+          src="/images/logo-mark.png"
+          alt=""
+          width={678}
+          height={220}
+          className="h-5 w-auto"
+          priority
+        />
         <span className="text-lg font-bold tracking-tight">{BRAND}</span>
       </Link>
 
@@ -75,7 +83,7 @@ export function BookingDock() {
               aria-current={active ? "page" : undefined}
               className={`rounded-field px-3.5 py-2.5 text-sm
                 transition-[background-color,color,transform] duration-200
-                [transition-timing-function:var(--ease-out-soft)]
+                ease-out-soft
                 hover:translate-x-0.5 ${
                 active
                   ? "bg-dock-active text-accent font-semibold"

@@ -21,8 +21,10 @@
   --color-ink-faint: #9c948c;
   --color-ink-inverse: #f2ede6;
 
-  --color-accent: #eba43c;
-  --color-accent-strong: #d98f22;
+  /* Sampled from the Ride On Click badge, so the site and the logo
+     are the same amber rather than two near-misses. */
+  --color-accent: #fda51c;
+  --color-accent-strong: #e08d0a;
   --color-accent-soft: #fdf3e2;
 
   --color-line: #e6e0d7;
@@ -194,7 +196,7 @@ html {
   .card {
     @apply rounded-card bg-surface border border-line p-5 sm:p-6
            transition-[transform,box-shadow,border-color] duration-300
-           [transition-timing-function:var(--ease-out-soft)];
+           ease-out-soft;
   }
 
   /* Opt-in lift for cards that are actually clickable. */
@@ -213,7 +215,7 @@ html {
     @apply relative inline-flex items-center justify-center overflow-hidden
            rounded-field bg-accent px-6 py-3 text-sm font-semibold text-ink
            transition-[transform,box-shadow,background-color] duration-200
-           [transition-timing-function:var(--ease-out-soft)]
+           ease-out-soft
            hover:bg-accent-strong hover:-translate-y-0.5
            hover:shadow-[0_10px_24px_-10px_rgb(235_164_60_/_0.85)]
            active:translate-y-0 active:scale-[0.98]
@@ -244,7 +246,7 @@ html {
     @apply inline-flex items-center justify-center rounded-field border border-line
            bg-surface px-6 py-3 text-sm font-semibold text-ink
            transition-[transform,box-shadow,border-color] duration-200
-           [transition-timing-function:var(--ease-out-soft)]
+           ease-out-soft
            hover:border-ink-faint hover:-translate-y-0.5
            hover:shadow-[var(--shadow-lift)]
            active:translate-y-0 active:scale-[0.98];

@@ -206,7 +206,7 @@ export function BookingForm() {
               onClick={() => setServiceType(tab.id)}
               className={`rounded-full px-5 py-2.5 text-sm font-medium
                 transition-[background-color,color,border-color,transform] duration-200
-                [transition-timing-function:var(--ease-out-soft)]
+                ease-out-soft
                 hover:-translate-y-0.5 active:translate-y-0 ${
                 active
                   ? "bg-ink text-ink-inverse"
@@ -323,7 +323,7 @@ export function BookingForm() {
                 onClick={() => setVehicleCategory(vehicle.id)}
                 className={`rounded-field border px-3 py-4 text-center
                   transition-[background-color,border-color,transform,box-shadow] duration-200
-                  [transition-timing-function:var(--ease-out-soft)]
+                  ease-out-soft
                   hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${
                   active
                     ? "border-accent bg-accent-soft shadow-[var(--shadow-lift)]"

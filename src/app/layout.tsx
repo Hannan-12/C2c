@@ -47,7 +47,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${archivo.variable} ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      {/*
+        suppressHydrationWarning is scoped to this element's own attributes,
+        not the tree below it — hydration bugs in our components still warn.
+        It is here because browser extensions (password managers, colour
+        pickers) inject attributes onto <body> before React hydrates, which
+        React reports as a mismatch we neither caused nor can prevent.
+      */}
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -74,7 +75,14 @@ export default async function LoginPage({ searchParams }: PageProps<"/admin/logi
     <div className="min-h-screen grid place-items-center bg-dock px-6">
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-2.5 mb-8 text-ink-inverse">
-          <span className="size-2 rounded-full bg-accent" aria-hidden />
+          <Image
+          src="/images/logo-mark.png"
+          alt=""
+          width={678}
+          height={220}
+          className="h-5 w-auto shrink-0"
+          priority
+        />
           <span className="text-lg font-bold tracking-tight">Ride On Click Admin</span>
         </div>
 

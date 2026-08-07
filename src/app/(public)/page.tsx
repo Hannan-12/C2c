@@ -53,7 +53,7 @@ export default function HomePage() {
       {/* Ambient warmth behind the hero. Purely decorative, never interactive. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-40 -left-32 size-[38rem]
+        className="pointer-events-none absolute -top-40 -left-32 size-152
                    rounded-full bg-accent/12 blur-3xl animate-drift"
       />
 
@@ -127,7 +127,7 @@ export default function HomePage() {
                 className="group grid sm:grid-cols-[220px_1fr_auto] items-baseline gap-x-6 gap-y-1
                            border-b border-line py-5 px-3 -mx-3 rounded-field
                            transition-[background-color,transform] duration-300
-                           [transition-timing-function:var(--ease-out-soft)]
+                           ease-out-soft
                            hover:bg-surface hover:translate-x-1"
               >
                 <span className="display text-lg group-hover:text-accent-strong transition-colors">
@@ -141,7 +141,7 @@ export default function HomePage() {
                 </span>
                 <span
                   className="hidden sm:block text-ink-faint transition-[color,transform]
-                             duration-300 [transition-timing-function:var(--ease-out-soft)]
+                             duration-300 ease-out-soft
                              group-hover:text-accent group-hover:translate-x-1.5"
                   aria-hidden
                 >

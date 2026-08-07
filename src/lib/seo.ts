@@ -16,6 +16,8 @@ export const BUSINESS = {
   areasServed: ["Dubai", "Abu Dhabi", "Sharjah"],
   /** 24/7 in schema.org's notation: all days, midnight to midnight. */
   openingHours: "Mo-Su 00:00-23:59",
+  /** The same fact in prose, for page copy. */
+  openingHoursLabel: "any hour, any day",
   /** Digits only, international format — shared with the wa.me links. */
   whatsapp: process.env.NEXT_PUBLIC_ADMIN_WHATSAPP ?? "",
   // TODO(client): supply legal entity name, trade licence number, registered

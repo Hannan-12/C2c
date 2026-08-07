@@ -40,7 +40,7 @@ export async function RouteBoard() {
               className="group relative flex items-center gap-4 px-5 sm:px-6 py-3.5
                          border-b border-dock-border overflow-hidden
                          transition-colors duration-300
-                         [transition-timing-function:var(--ease-out-soft)]
+                         ease-out-soft
                          hover:bg-white/6"
             >
               {/* Accent rail wipes in from the left on hover. */}
@@ -48,7 +48,7 @@ export async function RouteBoard() {
                 aria-hidden
                 className="absolute left-0 inset-y-0 w-0.5 bg-accent origin-top
                            scale-y-0 transition-transform duration-300
-                           [transition-timing-function:var(--ease-out-soft)]
+                           ease-out-soft
                            group-hover:scale-y-100"
               />
 
@@ -68,7 +68,7 @@ export async function RouteBoard() {
               <span
                 className="tnum shrink-0 text-right font-mono text-sm font-medium text-accent
                            transition-transform duration-300
-                           [transition-timing-function:var(--ease-out-soft)]
+                           ease-out-soft
                            group-hover:scale-105"
               >
                 {route.currency} {route.fromFare}
@@ -76,7 +76,7 @@ export async function RouteBoard() {
 
               <span
                 className="shrink-0 text-ink-inverse/25 transition-[color,transform]
-                           duration-300 [transition-timing-function:var(--ease-out-soft)]
+                           duration-300 ease-out-soft
                            group-hover:text-accent group-hover:translate-x-1"
                 aria-hidden
               >

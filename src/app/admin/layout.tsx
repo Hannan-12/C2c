@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { AdminNav } from "@/components/admin-nav";
 import { signOut } from "./actions";
@@ -14,7 +15,14 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
                    w-full lg:w-[260px] shrink-0 px-5 py-7"
       >
         <Link href="/admin" className="flex items-center gap-2.5 mb-8 px-2">
-          <span className="size-2 rounded-full bg-accent" aria-hidden />
+          <Image
+            src="/images/logo-mark.png"
+            alt=""
+            width={678}
+            height={220}
+            className="h-5 w-auto shrink-0"
+            priority
+          />
           <span>
             <span className="block text-base font-bold tracking-tight leading-tight">
               Ride On Click
