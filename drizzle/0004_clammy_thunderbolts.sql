@@ -1,0 +1,1 @@
+ALTER TABLE `bookings` ADD `confirmation_email_sent_at` datetime;

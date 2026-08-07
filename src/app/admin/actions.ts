@@ -8,6 +8,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { bookings, bookingAssignments, drivers, BOOKING_STATUSES } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin-session";
+import { notifyBookingConfirmed } from "@/lib/email/notify";
 import { SESSION_COOKIE } from "@/lib/session";
 import type { BookingStatus } from "@/lib/booking-status";
 
@@ -16,6 +17,18 @@ import type { BookingStatus } from "@/lib/booking-status";
  * server action is its own POST endpoint — it is reachable without ever
  * rendering the page that contains it.
  */
+
+/**
+ * Statuses that mean the booking is agreed with the customer. An admin can
+ * jump straight from "requested" to "assigned" without passing through
+ * "confirmed", so the confirmation email keys off the whole set, not one value.
+ */
+const CONFIRMED_STATUSES: BookingStatus[] = [
+  "confirmed",
+  "assigned",
+  "en_route",
+  "completed",
+];
 
 export async function signOut() {
   (await cookies()).delete(SESSION_COOKIE);
@@ -33,6 +46,13 @@ export async function updateBookingStatus(formData: FormData) {
   }
 
   await db.update(bookings).set({ status }).where(eq(bookings.id, bookingId));
+
+  // Anything from "confirmed" onwards means the booking is agreed, so the
+  // customer is owed the confirmation email. notifyBookingConfirmed sends it
+  // at most once, whichever of these transitions happens first.
+  if (CONFIRMED_STATUSES.includes(status)) {
+    await notifyBookingConfirmed(bookingId);
+  }
 
   revalidatePath("/admin");
   revalidatePath(`/admin/bookings/${bookingId}`);
@@ -74,6 +94,8 @@ export async function assignDriver(formData: FormData) {
         ]),
       ),
     );
+
+  await notifyBookingConfirmed(bookingId);
 
   revalidatePath("/admin");
   revalidatePath(`/admin/bookings/${bookingId}`);

@@ -6,6 +6,7 @@ import { createBookingSchema } from "@/lib/validation/booking";
 import { generateReferenceCode } from "@/lib/reference-code";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { calculateQuote } from "@/lib/quote";
+import { notifyBookingRequested } from "@/lib/email/notify";
 
 /** Booking submission is a write from an anonymous visitor — cap it per IP. */
 const SUBMIT_LIMIT = 10;
@@ -102,6 +103,12 @@ export async function POST(req: Request) {
     const referenceCode = generateReferenceCode();
     try {
       await db.insert(bookings).values({ ...row, referenceCode });
+
+      // Awaited, not fire-and-forget: on serverless the response ending can
+      // freeze the instance mid-request, dropping a detached promise. It never
+      // throws, and adds one API call to a request that already made one.
+      await notifyBookingRequested({ ...row, referenceCode });
+
       return NextResponse.json(
         {
           referenceCode,

@@ -12,7 +12,8 @@
     "db:studio": "drizzle-kit studio",
     "db:up": "docker compose -f docker-compose.dev.yml up -d",
     "db:down": "docker compose -f docker-compose.dev.yml down",
-    "db:seed": "npx tsx src/db/seed.ts"
+    "db:seed": "npx tsx src/db/seed.ts",
+    "email:preview": "npx tsx src/lib/email/preview.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",

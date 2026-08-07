@@ -104,6 +104,15 @@ export const bookings = mysqlTable(
 
     status: mysqlEnum("status", BOOKING_STATUSES).notNull().default("requested"),
 
+    /**
+     * When the "Booking Confirmed" email went out (docs Section 2).
+     *
+     * Recorded rather than inferred from status, because status can move
+     * backwards and forwards — an admin toggling confirmed → assigned →
+     * confirmed must not re-send the email each time.
+     */
+    confirmationEmailSentAt: datetime("confirmation_email_sent_at"),
+
     createdAt: datetime("created_at")
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
