@@ -75,7 +75,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/admin/logi
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-2.5 mb-8 text-ink-inverse">
           <span className="size-2 rounded-full bg-accent" aria-hidden />
-          <span className="text-lg font-bold tracking-tight">RideBook Admin</span>
+          <span className="text-lg font-bold tracking-tight">Ride On Click Admin</span>
         </div>
 
         <form action={signIn} className="card">

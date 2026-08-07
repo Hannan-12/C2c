@@ -1,5 +1,6 @@
 import { formatDistance, formatDuration, formatFare, formatPickup } from "@/lib/format";
 import type { ServiceType } from "@/db/schema";
+import { BRAND, siteUrl } from "@/lib/seo";
 import type { EmailMessage } from "./client";
 
 /** The fields both templates render. A row from `bookings` satisfies this. */
@@ -36,10 +37,6 @@ function esc(value: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
-}
-
-function siteUrl(): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 }
 
 function trackingUrl(referenceCode: string): string {
@@ -130,7 +127,7 @@ function layout(opts: {
               <td style="font-size:0;line-height:0;">
                 <div style="width:9px;height:9px;background:#eba43c;border-radius:9px;font-size:0;line-height:9px;">&nbsp;</div>
               </td>
-              <td style="padding-left:10px;color:#f2ede6;font-size:18px;font-weight:700;letter-spacing:-0.02em;font-family:${DISPLAY_FONT};">RideBook</td>
+              <td style="padding-left:10px;color:#f2ede6;font-size:18px;font-weight:700;letter-spacing:-0.02em;font-family:${DISPLAY_FONT};">${BRAND}</td>
             </tr>
           </table>
         </td>

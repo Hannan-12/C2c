@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { BookingForm } from "@/components/booking-form";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Book a Ride | RideBook",
+export const metadata = pageMetadata({
+  title: "Book a Ride",
   description:
-    "Book a chauffeur, airport transfer, city tour or hourly car in the UAE. Instant fare estimate, confirmation over WhatsApp.",
-};
+    "Book a chauffeur, airport transfer, city tour or hourly car in Dubai, Abu Dhabi or Sharjah. Instant fare estimate, confirmation over WhatsApp.",
+  path: "/book",
+});
 
 export default function BookPage() {
   return (

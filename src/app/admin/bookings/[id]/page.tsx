@@ -5,6 +5,7 @@ import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { bookings, bookingAssignments, drivers } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin-session";
+import { BRAND } from "@/lib/seo";
 import {
   SERVICE_LABEL,
   STATUS_LABEL,
@@ -80,7 +81,7 @@ export default async function BookingDetailPage({
 
   // Prefilled so the operator never retypes trip details into WhatsApp
   // (docs Section 8).
-  const customerMessage = `Hi ${booking.customerName}, this is RideBook about your booking ${booking.referenceCode} — ${route} on ${formatPickup(booking.pickupDatetime)}. Track it here: ${trackingUrl}`;
+  const customerMessage = `Hi ${booking.customerName}, this is ${BRAND} about your booking ${booking.referenceCode} — ${route} on ${formatPickup(booking.pickupDatetime)}. Track it here: ${trackingUrl}`;
   const driverMessage = `Job ${booking.referenceCode}\nPickup: ${booking.pickupLocation}\n${booking.dropoffLocation ? `Dropoff: ${booking.dropoffLocation}\n` : ""}When: ${formatPickup(booking.pickupDatetime)}\nVehicle: ${VEHICLE_LABEL[booking.vehicleCategory]}\nPassengers: ${booking.passengerCount}, bags: ${booking.luggageCount}`;
 
   return (

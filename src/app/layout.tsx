@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Archivo, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { BRAND, siteUrl } from "@/lib/seo";
 
 /**
  * Display face: a grotesque with transport-signage character, used only for
@@ -24,12 +25,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  // Without metadataBase, Open Graph and canonical URLs resolve relative and
+  // are wrong everywhere except localhost.
+  metadataBase: new URL(siteUrl()),
   title: {
-    default: "RideBook — Chauffeur & Airport Transfers in the UAE",
-    template: "%s | RideBook",
+    default: `${BRAND} — Chauffeur & Airport Transfers in Dubai, Abu Dhabi & Sharjah`,
+    template: `%s | ${BRAND}`,
   },
   description:
-    "Book chauffeur rides, airport transfers, city tours and hourly cars across the UAE. Instant fare estimates, confirmed over WhatsApp.",
+    "Book chauffeur rides, airport transfers, city tours and hourly cars across Dubai, Abu Dhabi and Sharjah. Instant fare estimates, confirmed over WhatsApp. Available 24/7.",
+  openGraph: {
+    siteName: BRAND,
+    locale: "en_AE",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

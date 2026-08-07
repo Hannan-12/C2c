@@ -17,7 +17,7 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
           <span className="size-2 rounded-full bg-accent" aria-hidden />
           <span>
             <span className="block text-base font-bold tracking-tight leading-tight">
-              RideBook
+              Ride On Click
             </span>
             <span className="block text-[11px] text-ink-inverse/45">Admin panel</span>
           </span>

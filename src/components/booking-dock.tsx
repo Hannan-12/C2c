@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { whatsappLink } from "@/lib/format";
+import { BRAND } from "@/lib/seo";
 import type { ServiceType } from "@/db/schema";
 
 const NAV = [
@@ -61,7 +62,7 @@ export function BookingDock() {
     >
       <Link href="/" className="flex items-center gap-2.5 mb-8">
         <span className="size-2 rounded-full bg-accent" aria-hidden />
-        <span className="text-lg font-bold tracking-tight">RideBook</span>
+        <span className="text-lg font-bold tracking-tight">{BRAND}</span>
       </Link>
 
       <nav aria-label="Main" className="flex flex-col gap-0.5">
