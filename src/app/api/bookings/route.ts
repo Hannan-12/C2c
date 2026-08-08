@@ -7,6 +7,7 @@ import { generateReferenceCode } from "@/lib/reference-code";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { calculateQuote } from "@/lib/quote";
 import { notifyBookingRequested } from "@/lib/email/notify";
+import { dbErrorCode, dbErrorMessage } from "@/lib/db-error";
 
 /** Booking submission is a write from an anonymous visitor — cap it per IP. */
 const SUBMIT_LIMIT = 10;
@@ -16,12 +17,9 @@ const SUBMIT_WINDOW_MS = 60 * 60 * 1000;
 const MAX_CODE_ATTEMPTS = 5;
 
 function isDuplicateKeyError(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code?: string }).code === "ER_DUP_ENTRY"
-  );
+  // Read through Drizzle's wrapper — the driver's code is on `error.cause`,
+  // so checking the wrapper directly never matched and a collision 500'd.
+  return dbErrorCode(error) === "ER_DUP_ENTRY";
 }
 
 export async function POST(req: Request) {
@@ -71,7 +69,7 @@ export async function POST(req: Request) {
       durationHours: input.durationHours,
     });
   } catch (error) {
-    console.error("Quote failed during booking creation:", error);
+    console.error("Quote failed during booking creation:", dbErrorMessage(error));
   }
 
   const row = {
@@ -123,7 +121,7 @@ export async function POST(req: Request) {
       );
     } catch (error) {
       if (isDuplicateKeyError(error)) continue;
-      console.error("Failed to create booking:", error);
+      console.error("Failed to create booking:", dbErrorMessage(error));
       return NextResponse.json(
         { error: "Could not create booking" },
         { status: 500 },

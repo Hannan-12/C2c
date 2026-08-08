@@ -3,6 +3,7 @@ import { z } from "zod";
 import { SERVICE_TYPES, VEHICLE_CATEGORIES } from "@/db/schema";
 import { calculateQuote, QuoteError, RoutesApiError } from "@/lib/quote";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { dbErrorMessage } from "@/lib/db-error";
 
 /**
  * Live fare quote for the booking form's dock summary (docs Section 13.2).
@@ -73,7 +74,7 @@ export async function POST(req: Request) {
         { status },
       );
     }
-    console.error("Quote failed:", error);
+    console.error("Quote failed:", dbErrorMessage(error));
     return NextResponse.json({ error: "Could not calculate a fare" }, { status: 500 });
   }
 }
