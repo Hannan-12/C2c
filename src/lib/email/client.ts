@@ -26,22 +26,35 @@ export class EmailError extends Error {
 }
 
 /**
+ * Sending identity. `rideonclick.com` is verified in Resend, so this address is
+ * a fixed property of the business rather than of the environment — the same in
+ * development and production, and not a secret.
+ *
+ * It lives here rather than in an environment variable because the host's
+ * settings panel proved unreliable: an edited value reverted to an earlier one
+ * more than once, and while it held `onboarding@resend.dev` every send was
+ * rejected 403 (that test domain may only mail the account owner). BOOKING_EMAIL_FROM
+ * still overrides, for staging on a different domain.
+ */
+const DEFAULT_FROM = "Ride On Click <bookings@rideonclick.com>";
+
+/**
  * Sends an email, or logs it when no API key is configured.
  *
- * The client's Resend account and verified sending domain are a handover item
- * (docs Section 15), so the whole booking flow has to work before a key
- * exists. Without one this logs and reports `skipped` instead of throwing —
- * the same escape hatch GOOGLE_ROUTES_MOCK gives the quote engine.
+ * The key remains an environment variable — it *is* a secret. Without one this
+ * logs and reports `skipped` instead of throwing, the same escape hatch
+ * GOOGLE_ROUTES_MOCK gives the quote engine, so the booking flow works before
+ * the client's Resend account exists (docs Section 15).
  */
 export async function sendEmail(
   message: EmailMessage,
 ): Promise<{ sent: boolean; reason?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.BOOKING_EMAIL_FROM;
+  const from = process.env.BOOKING_EMAIL_FROM?.trim() || DEFAULT_FROM;
 
-  if (!apiKey || !from) {
+  if (!apiKey) {
     console.info(
-      `[email] Not configured (RESEND_API_KEY / BOOKING_EMAIL_FROM) — ` +
+      `[email] Not configured (RESEND_API_KEY) — ` +
         `would send "${message.subject}" to ${message.to}`,
     );
     return { sent: false, reason: "not-configured" };
