@@ -9,6 +9,7 @@ import {
   formatPickup,
 } from "@/lib/format";
 import type { ServiceType, VehicleCategory } from "@/db/schema";
+import { PlaceInput } from "./place-input";
 
 type Tab = { id: ServiceType; label: string };
 
@@ -231,6 +232,7 @@ export function BookingForm() {
             placeholder="Dubai International Airport (DXB)"
             error={fieldErrors.pickupLocation}
             required
+            place
           />
 
           {!isHourly && (
@@ -242,6 +244,7 @@ export function BookingForm() {
               placeholder="Burj Khalifa, Downtown Dubai"
               error={fieldErrors.dropoffLocation}
               required
+              place
             />
           )}
 
@@ -571,6 +574,7 @@ function Field({
   error,
   type = "text",
   required,
+  place = false,
 }: {
   label: string;
   id: string;
@@ -580,23 +584,35 @@ function Field({
   error?: string;
   type?: string;
   required?: boolean;
+  /** Address fields only — turns the input into a place-suggestion combobox. */
+  place?: boolean;
 }) {
   return (
     <div>
       <label className="field-label" htmlFor={id}>
         {label}
       </label>
-      <input
-        id={id}
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        required={required}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${id}-error` : undefined}
-        className="field-input"
-      />
+      {place ? (
+        <PlaceInput
+          id={id}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          required={required}
+        />
+      ) : (
+        <input
+          id={id}
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          required={required}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${id}-error` : undefined}
+          className="field-input"
+        />
+      )}
       {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
     </div>
   );

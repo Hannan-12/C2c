@@ -19,7 +19,7 @@ export const metadata = pageMetadata({
  */
 export default function AboutPage() {
   return (
-    <div className="relative px-6 sm:px-10 lg:px-14 py-10 lg:py-14">
+    <div className="relative overflow-x-clip px-6 sm:px-10 lg:px-14 py-10 lg:py-14">
       <div
         aria-hidden
         className="pointer-events-none absolute -top-40 -left-32 size-152

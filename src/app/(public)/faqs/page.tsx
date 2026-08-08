@@ -164,7 +164,7 @@ export default function FaqsPage() {
   };
 
   return (
-    <div className="relative px-6 sm:px-10 lg:px-14 py-10 lg:py-14">
+    <div className="relative overflow-x-clip px-6 sm:px-10 lg:px-14 py-10 lg:py-14">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

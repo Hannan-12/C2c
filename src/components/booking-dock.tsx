@@ -6,9 +6,10 @@ import { useState } from "react";
 import { whatsappLink } from "@/lib/format";
 import Image from "next/image";
 import { BRAND } from "@/lib/seo";
+import { PlaceInput } from "./place-input";
 import type { ServiceType } from "@/db/schema";
 
-const NAV = [
+export const NAV = [
   { href: "/book", label: "Book a Ride" },
   { href: "/airport-rides", label: "Airport Transfers" },
   { href: "/city-tour", label: "City Tours" },
@@ -17,7 +18,7 @@ const NAV = [
   { href: "/faqs", label: "Help Center" },
 ];
 
-const SECONDARY = [
+export const SECONDARY = [
   { href: "/about-us", label: "About" },
   { href: "/contact-us", label: "Contact" },
   { href: "/terms", label: "Terms" },
@@ -34,6 +35,10 @@ const QUICK_TABS: { id: ServiceType; label: string }[] = [
  * The persistent left panel (docs Section 13.1): nav, a quick booking form,
  * and a WhatsApp card. Stays fixed while page content scrolls independently
  * on the right — the defining feature of the approved Split Dock direction.
+ *
+ * Desktop only. Below `lg` it would stack above the page and push content off
+ * the first screen, so phones get MobileChrome instead: a slim header, a nav
+ * sheet, and a fixed bottom action bar.
  */
 export function BookingDock() {
   const pathname = usePathname();
@@ -65,8 +70,8 @@ export function BookingDock() {
 
   return (
     <aside
-      className="bg-dock text-ink-inverse flex flex-col lg:h-screen lg:sticky lg:top-0
-                 lg:overflow-y-auto w-full lg:w-90 xl:w-100 shrink-0 px-7 py-8"
+      className="hidden lg:flex bg-dock text-ink-inverse flex-col lg:h-screen lg:sticky
+                 lg:top-0 lg:overflow-y-auto lg:w-90 xl:w-100 shrink-0 px-7 py-8"
     >
       <Link href="/" className="flex items-center gap-2.5 mb-8">
         <Image
@@ -135,13 +140,13 @@ export function BookingDock() {
               <label className="field-label-dark" htmlFor="dock-pickup">
                 From
               </label>
-              <input
+              <PlaceInput
                 id="dock-pickup"
                 value={pickup}
-                onChange={(e) => setPickup(e.target.value)}
+                onChange={setPickup}
                 placeholder="Dubai International Airport"
-                className="field-input-dark"
                 required
+                dark
               />
             </div>
 
@@ -150,19 +155,19 @@ export function BookingDock() {
                 <label className="field-label-dark" htmlFor="dock-dropoff">
                   To
                 </label>
-                <input
+                <PlaceInput
                   id="dock-dropoff"
                   value={dropoff}
-                  onChange={(e) => setDropoff(e.target.value)}
+                  onChange={setDropoff}
                   placeholder="Burj Khalifa, Downtown"
-                  className="field-input-dark"
                   required
+                  dark
                 />
               </div>
             )}
 
             <div className="grid grid-cols-2 gap-2.5">
-              <div>
+              <div className="min-w-0">
                 <label className="field-label-dark" htmlFor="dock-date">
                   Date
                 </label>
@@ -172,11 +177,11 @@ export function BookingDock() {
                   value={date}
                   min={new Date().toISOString().slice(0, 10)}
                   onChange={(e) => setDate(e.target.value)}
-                  className="field-input-dark scheme-dark"
+                  className="field-input-dark scheme-dark min-w-0"
                   required
                 />
               </div>
-              <div>
+              <div className="min-w-0">
                 <label className="field-label-dark" htmlFor="dock-time">
                   Time
                 </label>
@@ -185,7 +190,7 @@ export function BookingDock() {
                   type="time"
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
-                  className="field-input-dark scheme-dark"
+                  className="field-input-dark scheme-dark min-w-0"
                   required
                 />
               </div>

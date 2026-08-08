@@ -48,7 +48,7 @@ export type ServicePageContent = {
 
 export function ServicePage({ content }: { content: ServicePageContent }) {
   return (
-    <div className="relative px-6 sm:px-10 lg:px-14 py-10 lg:py-14">
+    <div className="relative overflow-x-clip px-6 sm:px-10 lg:px-14 py-10 lg:py-14">
       <ServiceSchema {...content.schema} />
       <BreadcrumbSchema
         items={[
