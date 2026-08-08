@@ -35,6 +35,17 @@ export function formatPickup(value: Date | string): string {
   });
 }
 
+/**
+ * Groups a UAE number for display: 971589655634 → +971 58 965 5634.
+ * Stored and linked as bare digits; only the rendering is grouped, so wa.me
+ * and tel: links are unaffected.
+ */
+export function formatPhone(digits: string): string {
+  const d = digits.replace(/\D/g, "");
+  const m = d.match(/^(971)(\d{2})(\d{3})(\d{4})$/);
+  return m ? `+${m[1]} ${m[2]} ${m[3]} ${m[4]}` : `+${d}`;
+}
+
 /** Builds a wa.me deep link with a prefilled message (docs Section 4). */
 export function whatsappLink(number: string, message: string): string {
   const digits = number.replace(/\D/g, "");

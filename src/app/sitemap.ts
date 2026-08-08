@@ -18,6 +18,8 @@ const ROUTES: { path: string; priority: number; changeFrequency: MetadataRoute.S
   { path: "/faqs", priority: 0.6, changeFrequency: "monthly" },
   { path: "/about-us", priority: 0.5, changeFrequency: "yearly" },
   { path: "/contact-us", priority: 0.5, changeFrequency: "yearly" },
+  { path: "/terms", priority: 0.3, changeFrequency: "yearly" },
+  { path: "/privacy", priority: 0.3, changeFrequency: "yearly" },
   { path: "/track", priority: 0.4, changeFrequency: "yearly" },
 ];
 

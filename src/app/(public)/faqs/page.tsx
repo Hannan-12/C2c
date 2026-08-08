@@ -80,15 +80,14 @@ const GROUPS: { heading: string; items: { question: string; answer: string }[] }
     heading: "Changes and cancellations",
     items: [
       {
-        // TODO(client): replace with the real cancellation policy and any fee.
         question: "Can I cancel or change my booking?",
         answer:
-          "Yes — message us on WhatsApp with your reference code. Because a person handles every booking, changes are a conversation rather than a form. Contact us as early as you can so the driver can be reassigned.",
+          "Cancel free of charge more than 12 hours before pickup, or any time before a driver is assigned. Once a driver is assigned, 50% of the fare applies, because they have turned other work down. Moving a booking to a different time is free if we can accommodate it. Full terms are on our Terms & Conditions page.",
       },
       {
         question: "What if my flight is delayed?",
         answer:
-          "If you gave us your flight number, we track the arrival and move your pickup to match. You don't need to message us, though you're welcome to.",
+          "If you gave us your flight number, we track the arrival and move your pickup to match. You don't need to message us, though you're welcome to. Airport bookings include 60 minutes of free waiting, measured from when your flight actually lands rather than from the time you booked.",
       },
       {
         question: "What happens if the driver doesn't arrive?",

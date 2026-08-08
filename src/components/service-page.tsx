@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BUSINESS } from "@/lib/seo";
+import { BreadcrumbSchema, ServiceSchema } from "./structured-data";
 
 /**
  * Shared shell for the service pages (docs Section 9).
@@ -41,11 +42,21 @@ export type ServicePageContent = {
   faqs?: { question: string; answer: string }[];
   /** Prefilled query for the booking form, so the CTA lands ready to fill. */
   bookHref: string;
+  /** Drives Service + BreadcrumbList JSON-LD for this page. */
+  schema: { name: string; description: string; path: string };
 };
 
 export function ServicePage({ content }: { content: ServicePageContent }) {
   return (
     <div className="relative px-6 sm:px-10 lg:px-14 py-10 lg:py-14">
+      <ServiceSchema {...content.schema} />
+      <BreadcrumbSchema
+        items={[
+          { name: "Home", path: "/" },
+          { name: content.schema.name, path: content.schema.path },
+        ]}
+      />
+
       <div
         aria-hidden
         className="pointer-events-none absolute -top-40 -left-32 size-152

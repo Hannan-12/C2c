@@ -256,9 +256,9 @@ export function BookingForm() {
                 onChange={(e) => setDurationHours(e.target.value)}
                 className="field-input"
               >
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+                {Array.from({ length: 11 }, (_, i) => i + 2).map((h) => (
                   <option key={h} value={h}>
-                    {h} {h === 1 ? "hour" : "hours"}
+                    {h} hours
                   </option>
                 ))}
               </select>

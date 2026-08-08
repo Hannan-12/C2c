@@ -9,9 +9,8 @@ export const metadata = pageMetadata({
   path: "/airport-rides",
 });
 
-// TODO(client): confirm the free waiting-time allowance and whether meet-and-
-// greet inside the terminal is offered as standard or on request. The copy
-// below deliberately avoids committing to a specific number of minutes.
+// TODO(client): confirm whether meet-and-greet inside the terminal is offered
+// as standard or on request. Waiting-time allowance is now set in /terms.
 const content: ServicePageContent = {
   eyebrow: "DXB · DWC · AUH · SHJ",
   title: (
@@ -87,7 +86,7 @@ const content: ServicePageContent = {
     {
       question: "What if my flight is delayed?",
       answer:
-        "We track the flight number you gave us and move the pickup to match the new arrival time. You don't need to do anything, though a WhatsApp message is always welcome if plans change entirely.",
+        "We track the flight number you gave us and move the pickup to match the new arrival time. You don't need to do anything, though a WhatsApp message is always welcome if plans change entirely. You get 60 minutes of free waiting from the moment you actually land.",
     },
     {
       question: "Where does the driver meet me?",
@@ -105,6 +104,11 @@ const content: ServicePageContent = {
         "Book each leg separately so each one gets its own reference code and driver, then mention on WhatsApp that they belong together and we'll keep them consistent.",
     },
   ],
+  schema: {
+    name: "Airport Transfers",
+    description: "Airport pickups and drop-offs with flight tracking and 60 minutes of free waiting.",
+    path: "/airport-rides",
+  },
   bookHref: "/book?serviceType=airport",
 };
 

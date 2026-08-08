@@ -73,6 +73,11 @@ const content: ServicePageContent = {
     },
   ],
   art: <ServicePhoto src="/images/rides.jpg" alt="Dubai skyline at dusk, seen across the city" priority />,
+  schema: {
+    name: "Chauffeur Rides",
+    description: "Point-to-point chauffeur rides with a fixed fare agreed before travel.",
+    path: "/rides",
+  },
   bookHref: "/book?serviceType=ride",
 };
 

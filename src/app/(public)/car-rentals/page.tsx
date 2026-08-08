@@ -92,6 +92,11 @@ const content: ServicePageContent = {
     },
   ],
   art: <ServicePhoto src="/images/car-rentals.jpg" alt="A car key being handed from one person to another" priority />,
+  schema: {
+    name: "Car Rentals",
+    description: "Self-drive car hire delivered to your door.",
+    path: "/car-rentals",
+  },
   bookHref: "/book?serviceType=ride",
 };
 

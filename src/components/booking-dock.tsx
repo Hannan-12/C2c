@@ -17,6 +17,13 @@ const NAV = [
   { href: "/faqs", label: "Help Center" },
 ];
 
+const SECONDARY = [
+  { href: "/about-us", label: "About" },
+  { href: "/contact-us", label: "Contact" },
+  { href: "/terms", label: "Terms" },
+  { href: "/privacy", label: "Privacy" },
+];
+
 const QUICK_TABS: { id: ServiceType; label: string }[] = [
   { id: "ride", label: "Rides" },
   { id: "hourly", label: "Hourly" },
@@ -219,6 +226,29 @@ export function BookingDock() {
             </span>
           </span>
         </a>
+
+        {/*
+          Secondary links. Kept small and below the WhatsApp card so they do
+          not compete with the booking flow, but present on every page — an
+          unlinked page is one search engines will not reliably find, and
+          these are the pages customers look for before trusting a new
+          business.
+        */}
+        <nav aria-label="Company" className="mt-6 flex flex-wrap gap-x-4 gap-y-2">
+          {SECONDARY.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="text-xs text-ink-inverse/45 hover:text-ink-inverse/80 transition-colors"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+
+        <p className="mt-4 text-[11px] text-ink-inverse/30">
+          © {new Date().getFullYear()} {BRAND}
+        </p>
       </div>
     </aside>
   );

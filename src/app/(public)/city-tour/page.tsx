@@ -87,6 +87,11 @@ const content: ServicePageContent = {
     },
   ],
   art: <ServicePhoto src="/images/city-tour.jpg" alt="Aerial view of the Dubai coastline and Burj Al Arab" priority />,
+  schema: {
+    name: "City Tours & Hourly Hire",
+    description: "A car and driver booked by the hour, on your own route.",
+    path: "/city-tour",
+  },
   bookHref: "/book?serviceType=hourly",
 };
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { RouteBoard } from "@/components/route-board";
+import { LocalBusinessSchema } from "@/components/structured-data";
 
 /** Pricing changes rarely; an hour-old board is fine and keeps the page fast. */
 export const revalidate = 3600;
@@ -50,6 +51,8 @@ const STEPS = [
 export default function HomePage() {
   return (
     <div className="relative px-6 sm:px-10 lg:px-14 py-10 lg:py-14">
+      <LocalBusinessSchema />
+
       {/* Ambient warmth behind the hero. Purely decorative, never interactive. */}
       <div
         aria-hidden

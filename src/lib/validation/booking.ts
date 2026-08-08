@@ -34,7 +34,9 @@ export const createBookingSchema = z
 
     pickupDatetime: z.coerce.date(),
 
-    durationHours: z.number().int().min(1).max(24).optional(),
+    // Minimum published in /terms and on /city-tour. Enforced here so the
+    // rule holds for any client, not just our own form.
+    durationHours: z.number().int().min(2).max(24).optional(),
     flightNumber: z.string().max(20).optional(),
 
     vehicleCategory: z.enum(VEHICLE_CATEGORIES),
