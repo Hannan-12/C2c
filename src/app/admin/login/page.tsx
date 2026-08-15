@@ -1,75 +1,15 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import Image from "next/image";
-import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import { adminUsers } from "@/db/schema";
-import {
-  SESSION_COOKIE,
-  SESSION_COOKIE_OPTIONS,
-  createSessionToken,
-} from "@/lib/session";
-import { verifyPassword } from "@/lib/password";
-import { rateLimit } from "@/lib/rate-limit";
-import { headers } from "next/headers";
 
 export const metadata: Metadata = {
   title: "Admin sign in",
   robots: { index: false, follow: false },
 };
 
-/** Brute-force guard: 10 attempts per IP per 15 minutes. */
-const LOGIN_LIMIT = 10;
-const LOGIN_WINDOW_MS = 15 * 60 * 1000;
-
 export default async function LoginPage({ searchParams }: PageProps<"/admin/login">) {
   const params = await searchParams;
   const error = typeof params.error === "string" ? params.error : null;
   const next = typeof params.next === "string" ? params.next : "/admin";
-
-  async function signIn(formData: FormData) {
-    "use server";
-
-    const headerList = await headers();
-    const ip =
-      headerList.get("x-forwarded-for")?.split(",")[0].trim() ??
-      headerList.get("x-real-ip") ??
-      "unknown";
-
-    const nextPath = String(formData.get("next") ?? "/admin");
-    const failed = `/admin/login?error=1&next=${encodeURIComponent(nextPath)}`;
-
-    if (!rateLimit(`admin-login:${ip}`, LOGIN_LIMIT, LOGIN_WINDOW_MS).allowed) {
-      redirect(`/admin/login?error=throttled&next=${encodeURIComponent(nextPath)}`);
-    }
-
-    const email = String(formData.get("email") ?? "").trim().toLowerCase();
-    const password = String(formData.get("password") ?? "");
-    if (!email || !password) redirect(failed);
-
-    const [user] = await db
-      .select()
-      .from(adminUsers)
-      .where(eq(adminUsers.email, email))
-      .limit(1);
-
-    // Same failure for unknown account, wrong password and deactivated
-    // account — the form must not reveal which emails exist.
-    if (!user || !user.active) redirect(failed);
-    if (!(await verifyPassword(password, user.passwordHash))) redirect(failed);
-
-    await db
-      .update(adminUsers)
-      .set({ lastLoginAt: new Date() })
-      .where(eq(adminUsers.id, user.id));
-
-    const token = await createSessionToken({ sub: user.id, email: user.email });
-    (await cookies()).set(SESSION_COOKIE, token, SESSION_COOKIE_OPTIONS);
-
-    // Only relative paths, so a crafted ?next= can't bounce to another host.
-    redirect(nextPath.startsWith("/admin") ? nextPath : "/admin");
-  }
 
   return (
     <div className="min-h-screen grid place-items-center bg-dock px-6">
@@ -86,7 +26,12 @@ export default async function LoginPage({ searchParams }: PageProps<"/admin/logi
           <span className="text-lg font-bold tracking-tight">Ride On Click Admin</span>
         </div>
 
-        <form action={signIn} className="card">
+        {/*
+          A route handler, not a server action: an action's redirect is
+          resolved by an internal request back to the app, which this host
+          blocks. See api/admin/login/route.ts.
+        */}
+        <form action="/api/admin/login" method="post" className="card">
           <h1 className="display text-xl mb-1">Sign in</h1>
           <p className="text-sm text-ink-muted mb-5">
             Booking dashboard access.
