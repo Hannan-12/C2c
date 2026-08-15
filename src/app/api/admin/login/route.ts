@@ -32,9 +32,18 @@ const LOGIN_WINDOW_MS = 15 * 60 * 1000;
  * 303 specifically, not 302: it tells the browser to follow with GET. A 302
  * after a POST leaves the method up to the client, and a re-POSTed login is a
  * second rate-limit hit for one attempt.
+ *
+ * The Location is relative, and NextResponse.redirect is deliberately not
+ * used. That helper needs an absolute URL, and the obvious base — `req.url` —
+ * is the address the server is bound to, not the one the browser dialled:
+ * behind this host's proxy it is `http://0.0.0.0:3000`, which sent the browser
+ * to a dead address. Reconstructing the public origin from forwarded headers
+ * would work but trusts input we do not need to trust. A relative Location is
+ * valid per RFC 7231 §7.1.2 and the browser resolves it against the URL it
+ * actually requested, which is right by construction.
  */
-function seeOther(req: Request, path: string): NextResponse {
-  return NextResponse.redirect(new URL(path, req.url), 303);
+function seeOther(path: string): NextResponse {
+  return new NextResponse(null, { status: 303, headers: { Location: path } });
 }
 
 export async function POST(req: Request) {
@@ -47,15 +56,12 @@ export async function POST(req: Request) {
   const failed = `/admin/login?error=1&next=${encodeURIComponent(nextPath)}`;
 
   if (!rateLimit(`admin-login:${clientIp(req)}`, LOGIN_LIMIT, LOGIN_WINDOW_MS).allowed) {
-    return seeOther(
-      req,
-      `/admin/login?error=throttled&next=${encodeURIComponent(nextPath)}`,
-    );
+    return seeOther(`/admin/login?error=throttled&next=${encodeURIComponent(nextPath)}`);
   }
 
   const email = String(form.get("email") ?? "").trim().toLowerCase();
   const password = String(form.get("password") ?? "");
-  if (!email || !password) return seeOther(req, failed);
+  if (!email || !password) return seeOther(failed);
 
   const [user] = await db
     .select()
@@ -65,8 +71,8 @@ export async function POST(req: Request) {
 
   // Same failure for unknown account, wrong password and deactivated account —
   // the form must not reveal which emails exist.
-  if (!user || !user.active) return seeOther(req, failed);
-  if (!(await verifyPassword(password, user.passwordHash))) return seeOther(req, failed);
+  if (!user || !user.active) return seeOther(failed);
+  if (!(await verifyPassword(password, user.passwordHash))) return seeOther(failed);
 
   await db
     .update(adminUsers)
@@ -77,7 +83,7 @@ export async function POST(req: Request) {
 
   // Set on the redirect response itself: a cookie written via next/headers
   // from a route handler does not attach to a response built here.
-  const response = seeOther(req, nextPath);
+  const response = seeOther(nextPath);
   response.cookies.set(SESSION_COOKIE, token, SESSION_COOKIE_OPTIONS);
   return response;
 }
