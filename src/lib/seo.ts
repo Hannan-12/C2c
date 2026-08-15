@@ -20,9 +20,10 @@ export const BUSINESS = {
   openingHoursLabel: "any hour, any day",
   /** Digits only, international format — shared with the wa.me links. */
   whatsapp: process.env.NEXT_PUBLIC_ADMIN_WHATSAPP ?? "",
-  // TODO(client): supply legal entity name, trade licence number, registered
-  // address and public email. Required before LocalBusiness JSON-LD is valid.
-  email: "info@example.com",
+  // TODO(client): supply legal entity name, trade licence number and registered
+  // address. Required before LocalBusiness JSON-LD is complete.
+  /** Real mailbox on the verified domain — also the sender on booking email. */
+  email: "info@rideonclick.com",
 } as const;
 
 export function siteUrl(): string {
