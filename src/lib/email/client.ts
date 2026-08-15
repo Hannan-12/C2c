@@ -6,6 +6,8 @@
  * earning nothing. Mirrors the approach in routes-api.ts.
  */
 
+import { BRAND, BUSINESS } from "@/lib/seo";
+
 const ENDPOINT = "https://api.resend.com/emails";
 
 export type EmailMessage = {
@@ -26,9 +28,12 @@ export class EmailError extends Error {
 }
 
 /**
- * Sending identity. `rideonclick.com` is verified in Resend, so this address is
- * a fixed property of the business rather than of the environment — the same in
- * development and production, and not a secret.
+ * Sending identity — the business's own contact mailbox, so a customer who
+ * replies reaches a real inbox rather than a bounce.
+ *
+ * `rideonclick.com` is verified in Resend, so this address is a fixed property
+ * of the business rather than of the environment — the same in development and
+ * production, and not a secret.
  *
  * It lives here rather than in an environment variable because the host's
  * settings panel proved unreliable: an edited value reverted to an earlier one
@@ -36,7 +41,7 @@ export class EmailError extends Error {
  * rejected 403 (that test domain may only mail the account owner). BOOKING_EMAIL_FROM
  * still overrides, for staging on a different domain.
  */
-const DEFAULT_FROM = "Ride On Click <bookings@rideonclick.com>";
+const DEFAULT_FROM = `${BRAND} <${BUSINESS.email}>`;
 
 /**
  * Sends an email, or logs it when no API key is configured.
