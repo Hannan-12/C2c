@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -20,12 +21,29 @@ const TABS: Tab[] = [
   { id: "airport", label: "Airport" },
 ];
 
-const VEHICLES: { id: VehicleCategory; label: string; from: number; glyph: string }[] = [
-  { id: "comfort", label: "Comfort", from: 45, glyph: "🚗" },
-  { id: "business", label: "Business", from: 85, glyph: "🚙" },
-  { id: "suv", label: "SUV", from: 120, glyph: "🚐" },
-  { id: "vip", label: "VIP", from: 220, glyph: "🏎️" },
-  { id: "van", label: "Van", from: 110, glyph: "🚌" },
+/**
+ * Photographs rather than the emoji that stood here before. An emoji is drawn
+ * by the reader's operating system, so the same card showed a different car on
+ * every device and none of them said anything about the tier — 🚗 and 🚙 do not
+ * read as "sedan" versus "executive sedan" to anyone choosing between them.
+ *
+ * `seats` and `bags` are what the choice actually turns on. A customer with
+ * four passengers and four suitcases is not comparing paint; they are working
+ * out what fits.
+ */
+const VEHICLES: {
+  id: VehicleCategory;
+  label: string;
+  from: number;
+  blurb: string;
+  seats: number;
+  bags: number;
+}[] = [
+  { id: "comfort", label: "Comfort", from: 45, blurb: "Saloon", seats: 3, bags: 2 },
+  { id: "business", label: "Business", from: 85, blurb: "Executive saloon", seats: 3, bags: 3 },
+  { id: "suv", label: "SUV", from: 120, blurb: "Large 4x4", seats: 5, bags: 4 },
+  { id: "vip", label: "VIP", from: 220, blurb: "First class", seats: 3, bags: 3 },
+  { id: "van", label: "Van", from: 110, blurb: "People carrier", seats: 7, bags: 6 },
 ];
 
 type FieldErrors = Record<string, string>;
@@ -340,7 +358,7 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
                 type="button"
                 aria-pressed={active}
                 onClick={() => setVehicleCategory(vehicle.id)}
-                className={`rounded-field border px-3 py-4 text-center
+                className={`overflow-hidden rounded-card border text-left
                   transition-[background-color,border-color,transform,box-shadow] duration-200
                   ease-out-soft
                   hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${
@@ -349,12 +367,38 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
                     : "border-line bg-surface hover:border-accent/60 hover:shadow-[var(--shadow-lift)]"
                 }`}
               >
-                <span className="block text-xl mb-1.5" aria-hidden>
-                  {vehicle.glyph}
+                {/*
+                  Fixed aspect box so five cards of differing photo dimensions
+                  keep one baseline; without it the row's height is set by
+                  whichever image happens to be tallest.
+                */}
+                <span className="block relative aspect-[8/5] bg-dock">
+                  <Image
+                    src={`/images/vehicles/${vehicle.id}.jpg`}
+                    alt=""
+                    fill
+                    sizes="(min-width: 1024px) 20vw, (min-width: 640px) 33vw, 50vw"
+                    className={`object-cover transition-opacity duration-200 ${
+                      active ? "opacity-100" : "opacity-85"
+                    }`}
+                  />
                 </span>
-                <span className="block text-sm font-semibold">{vehicle.label}</span>
-                <span className="block text-[11px] text-ink-faint mt-0.5">
-                  From {formatFare(vehicle.from)}
+
+                <span className="block px-3 py-2.5">
+                  <span className="block text-sm font-semibold">{vehicle.label}</span>
+                  <span className="block text-[11px] text-ink-faint">{vehicle.blurb}</span>
+
+                  {/*
+                    Capacity as text, not icons: "3" beside a seat glyph is
+                    ambiguous about whether the driver counts, and these numbers
+                    are the whole reason someone picks one card over another.
+                  */}
+                  <span className="mt-1.5 block text-[11px] text-ink-muted">
+                    {vehicle.seats} seats · {vehicle.bags} bags
+                  </span>
+                  <span className="mt-1 block text-[11px] font-semibold">
+                    From {formatFare(vehicle.from)}
+                  </span>
                 </span>
               </button>
             );
