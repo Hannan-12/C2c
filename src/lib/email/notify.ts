@@ -88,7 +88,15 @@ export async function notifyBookingRequested(booking: NotifiableBooking): Promis
  * acting at the same moment would both pass a read check and both send. Here
  * only one UPDATE can match the `IS NULL` condition, so only that one emails.
  */
-export async function notifyBookingConfirmed(bookingId: string): Promise<void> {
+export async function notifyBookingConfirmed(
+  bookingId: string,
+  /**
+   * Stripe Checkout URL for a card booking, from ensurePaymentLink. Passed in
+   * rather than looked up here so this module keeps knowing nothing about
+   * payments, and so a link that failed to create simply arrives undefined.
+   */
+  payUrl?: string,
+): Promise<void> {
   const claimed = await db
     .update(bookings)
     .set({ confirmationEmailSentAt: new Date() })
@@ -109,7 +117,7 @@ export async function notifyBookingConfirmed(bookingId: string): Promise<void> {
   if (!email) return;
 
   try {
-    await sendEmail(bookingConfirmed(toEmailData(booking, email)));
+    await sendEmail(bookingConfirmed(toEmailData(booking, email), payUrl));
   } catch (error) {
     // Clear the claim so a later status change can retry the send.
     await db

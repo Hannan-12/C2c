@@ -8,7 +8,7 @@ import {
   formatFare,
   formatPickup,
 } from "@/lib/format";
-import type { ServiceType, VehicleCategory } from "@/db/schema";
+import type { PaymentMethod, ServiceType, VehicleCategory } from "@/db/schema";
 import { PlaceInput } from "./place-input";
 
 type Tab = { id: ServiceType; label: string };
@@ -30,7 +30,21 @@ const VEHICLES: { id: VehicleCategory; label: string; from: number; glyph: strin
 
 type FieldErrors = Record<string, string>;
 
-export function BookingForm() {
+/**
+ * How the customer wants to settle up. Cash is first and is the default: it is
+ * how this business already works, and card is the addition.
+ *
+ * Nothing is charged at this step either way. The booking is a request until
+ * an admin confirms the fare, so a card customer is choosing how they will pay
+ * later, not paying now — the copy has to say so, or the missing card form
+ * reads as a broken page.
+ */
+const PAYMENT_CHOICES: { id: PaymentMethod; label: string; note: string }[] = [
+  { id: "cash", label: "Cash", note: "Pay the driver directly" },
+  { id: "card", label: "Card", note: "We send a secure payment link" },
+];
+
+export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) {
   const router = useRouter();
   const params = useSearchParams();
 
@@ -53,6 +67,7 @@ export function BookingForm() {
     params.get("whatsapp") ?? "",
   );
   const [customerEmail, setCustomerEmail] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
 
   const [quote, setQuote] = useState<{
     distanceKm: number | null;
@@ -164,6 +179,7 @@ export function BookingForm() {
           customerName,
           customerWhatsapp,
           customerEmail: customerEmail || undefined,
+          paymentMethod,
         }),
       });
 
@@ -421,6 +437,58 @@ export function BookingForm() {
           </div>
         </div>
       </section>
+
+      {/*
+        Hidden entirely when Stripe is not configured, rather than shown and
+        disabled: offering card and then failing at the link stage is worse
+        than never offering it. Cash remains the submitted value.
+      */}
+      {cardEnabled && (
+        <section className="mb-8" aria-labelledby="payment-heading">
+          <h2 id="payment-heading" className="display text-xl mb-1.5">
+            How would you like to pay?
+          </h2>
+          <p className="text-sm text-ink-muted mb-4">
+            Nothing is charged now. We confirm the fare with you first.
+          </p>
+
+          <div role="radiogroup" aria-labelledby="payment-heading" className="grid sm:grid-cols-2 gap-3">
+            {PAYMENT_CHOICES.map((choice) => {
+              const active = paymentMethod === choice.id;
+              return (
+                <button
+                  key={choice.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => setPaymentMethod(choice.id)}
+                  className={`text-left rounded-card border px-4 py-3.5
+                    transition-colors duration-200 ease-out-soft ${
+                      active
+                        ? "border-accent bg-accent/8"
+                        : "border-line hover:bg-surface"
+                    }`}
+                >
+                  <span className="flex items-center gap-2.5 font-semibold">
+                    <span
+                      aria-hidden
+                      className={`size-4 rounded-full border-2 shrink-0 grid place-items-center ${
+                        active ? "border-accent" : "border-line"
+                      }`}
+                    >
+                      {active && <span className="size-2 rounded-full bg-accent" />}
+                    </span>
+                    {choice.label}
+                  </span>
+                  <span className="mt-1 block text-sm text-ink-muted pl-6.5">
+                    {choice.note}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {formError && (
         <p
