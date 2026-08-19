@@ -97,6 +97,8 @@ function layout(opts: {
   booking: BookingEmailData;
   ctaLabel: string;
   footer: string;
+  /** Stripe Checkout URL. Set only for confirmed card bookings. */
+  payUrl?: string;
 }): string {
   // The site's field labels: tiny, uppercase, wide tracking, faint ink.
   const rows = detailRows(opts.booking)
@@ -110,6 +112,22 @@ function layout(opts: {
     .join("");
 
   const link = trackingUrl(opts.booking.referenceCode);
+
+  /**
+   * Card bookings get a second, primary button. Pay leads and tracking becomes
+   * the quiet outline button — the amber fill is the email's one loud element
+   * and it should sit on the action we are asking for.
+   */
+  const payButton = opts.payUrl
+    ? `
+              <td style="background:#eba43c;border-radius:9px;">
+                <a href="${esc(opts.payUrl)}"
+                   style="display:inline-block;padding:13px 26px;color:#1c1a19;font-size:14px;font-weight:600;text-decoration:none;">
+                  Pay now
+                </a>
+              </td>
+              <td style="width:10px;font-size:0;line-height:0;">&nbsp;</td>`
+    : "";
 
   return `<!doctype html>
 <html>
@@ -153,9 +171,10 @@ function layout(opts: {
 
           <table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px 0 0;">
             <tr>
-              <td style="background:#eba43c;border-radius:9px;">
+              ${payButton}
+              <td style="${opts.payUrl ? "border:1px solid #e6e0d7;" : "background:#eba43c;"}border-radius:9px;">
                 <a href="${esc(link)}"
-                   style="display:inline-block;padding:13px 26px;color:#1c1a19;font-size:14px;font-weight:600;text-decoration:none;">
+                   style="display:inline-block;padding:${opts.payUrl ? "12px 25px" : "13px 26px"};color:#1c1a19;font-size:14px;font-weight:600;text-decoration:none;">
                   ${esc(opts.ctaLabel)}
                 </a>
               </td>
@@ -179,6 +198,7 @@ function layout(opts: {
 function plain(opts: {
   heading: string;
   intro: string;
+  payUrl?: string;
   booking: BookingEmailData;
   footer: string;
 }): string {
@@ -196,6 +216,7 @@ function plain(opts: {
     `Reference: ${opts.booking.referenceCode}`,
     rows,
     "",
+    ...(opts.payUrl ? [`Pay for this booking: ${opts.payUrl}`, ""] : []),
     `Track your booking: ${trackingUrl(opts.booking.referenceCode)}`,
     "",
     opts.footer,
@@ -220,18 +241,25 @@ export function bookingRequestReceived(booking: BookingEmailData): EmailMessage 
 }
 
 /** Sent when an admin confirms the booking (docs Section 2). */
-export function bookingConfirmed(booking: BookingEmailData): EmailMessage {
+export function bookingConfirmed(
+  booking: BookingEmailData,
+  payUrl?: string,
+): EmailMessage {
   const heading = "Your booking is confirmed";
   const intro =
     `Good news ${booking.customerName} — your ride is confirmed. ` +
+    (payUrl
+      ? "You chose to pay by card, so the secure payment link is below. "
+      : "") +
     `We're allocating a driver and their details will appear on your tracking page once assigned.`;
-  const footer =
-    "Need to change something? Reply to this email or message us on WhatsApp.";
+  const footer = payUrl
+    ? "Payment is handled by Stripe — we never see your card details. Need to change something? Reply to this email or message us on WhatsApp."
+    : "Need to change something? Reply to this email or message us on WhatsApp.";
 
   return {
     to: booking.customerEmail,
     subject: `Booking confirmed — ${booking.referenceCode}`,
-    html: layout({ heading, intro, booking, ctaLabel: "View your booking", footer }),
-    text: plain({ heading, intro, booking, footer }),
+    html: layout({ heading, intro, booking, ctaLabel: "View your booking", footer, payUrl }),
+    text: plain({ heading, intro, booking, footer, payUrl }),
   };
 }

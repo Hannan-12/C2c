@@ -91,6 +91,13 @@ export async function POST(req: Request) {
     customerName: input.customerName,
     customerWhatsapp: input.customerWhatsapp,
     customerEmail: input.customerEmail ?? null,
+    paymentMethod: input.paymentMethod,
+    // A card booking owes money but has nothing to pay yet — the link is
+    // created when an admin confirms the fare, not now.
+    paymentStatus:
+      input.paymentMethod === "card"
+        ? ("pending" as const)
+        : ("not_required" as const),
     distanceKm: quote?.distanceKm?.toString() ?? null,
     durationMin: quote?.durationMin ?? null,
     fareEstimate: quote?.fareEstimate.toString() ?? null,

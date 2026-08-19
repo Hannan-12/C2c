@@ -22,6 +22,34 @@ export const SERVICE_TYPES = [
   "courier",
 ] as const;
 
+/**
+ * How the customer chose to pay.
+ *
+ * `cash` is the existing behaviour and stays the default: settle with the
+ * driver, nothing to reconcile online. `card` routes through Stripe, but only
+ * after an admin has confirmed the fare — the site never charges for a trip
+ * the business has not yet accepted.
+ */
+export const PAYMENT_METHODS = ["cash", "card"] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+/**
+ * Where a card payment has reached. Cash bookings sit at `not_required`
+ * forever; the column describes the online payment, not whether the customer
+ * has settled up in the car.
+ *
+ * `pending` means a Stripe Checkout session exists and is unpaid — either the
+ * customer has not opened it yet, or they abandoned it. Sessions expire, so
+ * `pending` is not a promise of payment.
+ */
+export const PAYMENT_STATUSES = [
+  "not_required",
+  "pending",
+  "paid",
+  "refunded",
+] as const;
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+
 /** docs Section 5 — vehicle_category */
 export const VEHICLE_CATEGORIES = [
   "comfort",
@@ -112,6 +140,30 @@ export const bookings = mysqlTable(
      * confirmed must not re-send the email each time.
      */
     confirmationEmailSentAt: datetime("confirmation_email_sent_at"),
+
+    /** Chosen by the customer on the booking form. */
+    paymentMethod: mysqlEnum("payment_method", PAYMENT_METHODS)
+      .notNull()
+      .default("cash"),
+    paymentStatus: mysqlEnum("payment_status", PAYMENT_STATUSES)
+      .notNull()
+      .default("not_required"),
+
+    /**
+     * Stripe's identifiers, kept so a payment can be traced from a booking to
+     * the Stripe dashboard and back without guesswork during a dispute.
+     * Unique on the session so a replayed webhook cannot be applied twice.
+     */
+    stripeSessionId: varchar("stripe_session_id", { length: 255 }).unique(),
+    stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 255 }),
+
+    /**
+     * What was actually charged, in AED. Stored separately from fareEstimate:
+     * the estimate can be revised after the customer has already paid, and the
+     * amount taken from their card is the figure that matters in a dispute.
+     */
+    amountPaid: decimal("amount_paid", { precision: 10, scale: 2 }),
+    paidAt: datetime("paid_at"),
 
     createdAt: datetime("created_at")
       .notNull()

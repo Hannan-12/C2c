@@ -9,6 +9,7 @@ import { db } from "@/db";
 import { bookings, bookingAssignments, drivers, BOOKING_STATUSES } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin-session";
 import { notifyBookingConfirmed } from "@/lib/email/notify";
+import { ensurePaymentLink } from "@/lib/payments/checkout";
 import { SESSION_COOKIE } from "@/lib/session";
 import type { BookingStatus } from "@/lib/booking-status";
 
@@ -51,7 +52,10 @@ export async function updateBookingStatus(formData: FormData) {
   // customer is owed the confirmation email. notifyBookingConfirmed sends it
   // at most once, whichever of these transitions happens first.
   if (CONFIRMED_STATUSES.includes(status)) {
-    await notifyBookingConfirmed(bookingId);
+    // Before the email, so a card customer's confirmation carries the link
+    // rather than arriving first and being followed by a second message.
+    const payUrl = await ensurePaymentLink(bookingId);
+    await notifyBookingConfirmed(bookingId, payUrl ?? undefined);
   }
 
   revalidatePath("/admin");
@@ -95,7 +99,11 @@ export async function assignDriver(formData: FormData) {
       ),
     );
 
-  await notifyBookingConfirmed(bookingId);
+  // Assigning can be the first confirming transition, so the payment link is
+  // created here too — otherwise a booking that went straight from requested
+  // to assigned would be confirmed by email with nothing to pay against.
+  const payUrl = await ensurePaymentLink(bookingId);
+  await notifyBookingConfirmed(bookingId, payUrl ?? undefined);
 
   revalidatePath("/admin");
   revalidatePath(`/admin/bookings/${bookingId}`);

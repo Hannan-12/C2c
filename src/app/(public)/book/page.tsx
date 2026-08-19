@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { BookingForm } from "@/components/booking-form";
+import { paymentsEnabled } from "@/lib/payments/stripe";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
@@ -30,7 +31,8 @@ export default function BookPage() {
       </p>
 
       <Suspense fallback={<p className="text-sm text-ink-muted">Loading…</p>}>
-        <BookingForm />
+        {/* Server-side check: the Stripe key must never reach the browser. */}
+        <BookingForm cardEnabled={paymentsEnabled()} />
       </Suspense>
     </div>
   );

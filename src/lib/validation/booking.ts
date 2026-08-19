@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SERVICE_TYPES, VEHICLE_CATEGORIES } from "@/db/schema";
+import { PAYMENT_METHODS, SERVICE_TYPES, VEHICLE_CATEGORIES } from "@/db/schema";
 
 const stopSchema = z.object({
   address: z.string().min(1).max(500),
@@ -46,6 +46,10 @@ export const createBookingSchema = z
     customerName: z.string().min(1).max(200),
     customerWhatsapp: whatsappSchema,
     customerEmail: z.email().max(320).optional(),
+
+    // Defaults to cash so an older client, or a request made before card
+    // payment existed, keeps the original behaviour rather than failing.
+    paymentMethod: z.enum(PAYMENT_METHODS).default("cash"),
   })
   // Hourly bookings have a duration instead of a destination; every other
   // service type needs somewhere to go (docs Section 5).
