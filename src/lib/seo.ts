@@ -47,6 +47,15 @@ export function pageMetadata(opts: {
 }): Metadata {
   const url = canonical(opts.path);
 
+  /**
+   * Named explicitly rather than left to the opengraph-image file convention.
+   * That convention only reaches segments which do not declare their own
+   * openGraph block — and every page built here declares one, so without this
+   * line the homepage had a preview image and nothing else did. The pages
+   * people actually share are the service pages.
+   */
+  const image = "/opengraph-image.png";
+
   return {
     title: opts.title,
     description: opts.description,
@@ -59,11 +68,13 @@ export function pageMetadata(opts: {
       siteName: BRAND,
       locale: "en_AE",
       type: "website",
+      images: [{ url: image, width: 1200, height: 630, alt: BRAND }],
     },
     twitter: {
       card: "summary_large_image",
       title: `${opts.title} | ${BRAND}`,
       description: opts.description,
+      images: [image],
     },
   };
 }
