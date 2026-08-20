@@ -25,12 +25,6 @@ const SERVICES = [
     copy: "A driver for the day, on your route",
     detail: "Priced by the hour, not the meter",
   },
-  {
-    href: "/car-rentals",
-    label: "Car rentals",
-    copy: "Self-drive, delivered to your door",
-    detail: "Daily and weekly rates",
-  },
 ];
 
 const FLEET = [

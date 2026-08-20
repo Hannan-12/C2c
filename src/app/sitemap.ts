@@ -14,7 +14,6 @@ const ROUTES: { path: string; priority: number; changeFrequency: MetadataRoute.S
   { path: "/rides", priority: 0.8, changeFrequency: "monthly" },
   { path: "/airport-rides", priority: 0.8, changeFrequency: "monthly" },
   { path: "/city-tour", priority: 0.8, changeFrequency: "monthly" },
-  { path: "/car-rentals", priority: 0.8, changeFrequency: "monthly" },
   { path: "/faqs", priority: 0.6, changeFrequency: "monthly" },
   { path: "/about-us", priority: 0.5, changeFrequency: "yearly" },
   { path: "/contact-us", priority: 0.5, changeFrequency: "yearly" },

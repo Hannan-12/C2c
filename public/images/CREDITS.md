@@ -14,7 +14,6 @@ code changes.
 | rides.jpg | David Rodrigo | unsplash.com/photos/photo-1512453979798-5ea266f8880c |
 | airport.jpg | Rocker Sta | unsplash.com/photos/photo-1542296332-2e4473faf563 |
 | city-tour.jpg | Christoph Schulz | unsplash.com/photos/photo-1518684079-3c830dcef090 |
-| car-rentals.jpg | yahdi yasya | unsplash.com/photos/photo-1761014586544-53fe5e1f1e25 |
 
 ## Vehicle categories
 
