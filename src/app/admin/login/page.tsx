@@ -14,16 +14,18 @@ export default async function LoginPage({ searchParams }: PageProps<"/admin/logi
   return (
     <div className="min-h-screen grid place-items-center bg-dock px-6">
       <div className="w-full max-w-sm">
-        <div className="flex items-center gap-2.5 mb-8 text-ink-inverse">
+        <div className="flex flex-col items-center gap-2 mb-8 text-ink-inverse">
           <Image
-          src="/images/logo-mark.png"
-          alt=""
-          width={678}
-          height={220}
-          className="h-5 w-auto shrink-0"
-          priority
-        />
-          <span className="text-lg font-bold tracking-tight">Ride On Click Admin</span>
+            src="/images/logo-lockup-light.png"
+            alt="Ride On Click"
+            width={858}
+            height={383}
+            className="h-12 w-auto"
+            priority
+          />
+          <span className="text-[11px] uppercase tracking-[0.18em] text-ink-inverse/45">
+            Admin panel
+          </span>
         </div>
 
         {/*

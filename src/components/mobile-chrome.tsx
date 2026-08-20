@@ -67,14 +67,13 @@ export function MobileChrome({
         <div className="flex items-center justify-between px-5 h-14">
           <Link href="/" className="flex items-center gap-2.5">
             <Image
-              src="/images/logo-mark.png"
-              alt=""
-              width={678}
-              height={220}
-              className="h-4 w-auto"
+              src="/images/logo-lockup-light.png"
+              alt={BRAND}
+              width={858}
+              height={383}
+              className="h-7 w-auto"
               priority
             />
-            <span className="font-bold tracking-tight">{BRAND}</span>
           </Link>
 
           <button
