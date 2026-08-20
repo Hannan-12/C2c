@@ -14,21 +14,16 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
         className="bg-dock text-ink-inverse flex flex-col lg:h-screen lg:sticky lg:top-0
                    w-full lg:w-[260px] shrink-0 px-5 py-7"
       >
-        <Link href="/admin" className="flex items-center gap-2.5 mb-8 px-2">
+        <Link href="/admin" className="block mb-8 px-2">
           <Image
-            src="/images/logo-mark.png"
-            alt=""
-            width={678}
-            height={220}
-            className="h-5 w-auto shrink-0"
+            src="/images/logo-lockup-light.png"
+            alt="Ride On Click"
+            width={858}
+            height={383}
+            className="h-9 w-auto"
             priority
           />
-          <span>
-            <span className="block text-base font-bold tracking-tight leading-tight">
-              Ride On Click
-            </span>
-            <span className="block text-[11px] text-ink-inverse/45">Admin panel</span>
-          </span>
+          <span className="mt-1.5 block text-[11px] text-ink-inverse/45">Admin panel</span>
         </Link>
 
         <AdminNav />

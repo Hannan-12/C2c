@@ -74,14 +74,13 @@ export function BookingDock() {
     >
       <Link href="/" className="flex items-center gap-2.5 mb-8">
         <Image
-          src="/images/logo-mark.png"
-          alt=""
-          width={678}
-          height={220}
-          className="h-5 w-auto"
+          src="/images/logo-lockup-light.png"
+          alt={BRAND}
+          width={858}
+          height={383}
+          className="h-10 w-auto"
           priority
         />
-        <span className="text-lg font-bold tracking-tight">{BRAND}</span>
       </Link>
 
       <nav aria-label="Main" className="flex flex-col gap-0.5">
