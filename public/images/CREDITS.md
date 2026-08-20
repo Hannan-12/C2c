@@ -22,6 +22,10 @@ Shown on the booking form's vehicle picker. Filenames match the
 `vehicle_category` enum, so `vehicles/<category>.jpg` resolves without a lookup
 table.
 
+`business.jpg` is modified: the number plate is blurred. The Unsplash licence
+permits modification, and a legible plate belonging to a stranger has no place
+on a hire-car listing. It is the only edited image here.
+
 These are stock cars, not the client's fleet. Each was chosen to match its
 tier's body style — a saloon for Comfort, an executive saloon for Business, a
 people carrier for Van — because the photograph is what a customer reads the
@@ -30,8 +34,8 @@ file swap and needs no code change.
 
 | File | Vehicle shown | Photographer | Source |
 |---|---|---|---|
-| vehicles/comfort.jpg | Silver saloon | Kevin Bonilla | unsplash.com/photos/silver-sedan-parked-on-road-during-daytime-YPfnvLc3bbQ |
-| vehicles/business.jpg | Executive saloon at night | Max De Angelo | unsplash.com/photos/black-sedan-on-road-during-night-time-Xck6cu2nUmc |
+| vehicles/comfort.jpg | Silver saloon | Evan Clay | unsplash.com/photos/a-silver-car-parked-in-front-of-a-forest-JM8NVuW6e0k |
+| vehicles/business.jpg | Executive saloon | Samuel Girven | unsplash.com/photos/black-audi-a-4-on-road-during-daytime-NGbtPRrEujY |
 | vehicles/suv.jpg | Black luxury SUV | rawkkim | unsplash.com/photos/a-sleek-black-luxury-suv-parked-indoors-_Xp1QW53Fz8 |
 | vehicles/vip.jpg | Black flagship saloon | Martin Katler | unsplash.com/photos/black-mercedes-benz-sedan-on-cobblestone-street-y3neNkE6efI |
 | vehicles/van.jpg | Silver people carrier | Cambo Auto | unsplash.com/photos/a-silver-minivan-parked-on-the-side-of-the-road-CHNoqIW7pfY |
