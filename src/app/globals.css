@@ -121,6 +121,19 @@ html {
 }
 
 @layer utilities {
+  /**
+   * Hides the scrollbar on a rail that has its own arrow controls, without
+   * disabling the scrolling itself — a trackpad, a touchscreen and the
+   * keyboard all still work.
+   */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Entrance for above-the-fold content. Paired with a stagger delay inline. */
   .animate-rise {
     animation: rise 0.6s var(--ease-out-soft) both;

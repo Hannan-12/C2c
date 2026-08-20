@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { RouteBoard } from "@/components/route-board";
 import { LocalBusinessSchema } from "@/components/structured-data";
+import { DestinationSlider } from "@/components/destination-slider";
 
 /** Pricing changes rarely; an hour-old board is fine and keeps the page fast. */
 export const revalidate = 3600;
@@ -206,6 +207,8 @@ export default function HomePage() {
           </table>
         </div>
       </section>
+
+      <DestinationSlider />
 
       {/* Numbered because the order is real — each step depends on the last. */}
       <section className="reveal mt-20 mb-6" aria-labelledby="how-heading">

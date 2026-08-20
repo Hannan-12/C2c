@@ -39,6 +39,22 @@ file swap and needs no code change.
 | vehicles/vip.jpg | Black flagship saloon | Martin Katler | unsplash.com/photos/black-mercedes-benz-sedan-on-cobblestone-street-y3neNkE6efI |
 | vehicles/van.jpg | Silver people carrier | Cambo Auto | unsplash.com/photos/a-silver-minivan-parked-on-the-side-of-the-road-CHNoqIW7pfY |
 
+## Destinations
+
+Shown on the homepage rail. Only places the business serves — `areasServed` is
+Dubai, Abu Dhabi and Sharjah — so the neighbouring emirates are absent however
+good the photographs would be. The airport card reuses `airport.jpg`.
+
+| File | Place | Photographer | Source |
+|---|---|---|---|
+| destinations/downtown-dubai.jpg | Burj Khalifa and the Downtown skyline | ZQ Lee | unsplash.com/photos/city-during-day-VbDjv8-8ibc |
+| destinations/dubai-marina.jpg | Marina towers from the water | Emma Harrisova | unsplash.com/photos/high-rise-buildings-near-sea-during-daytime-UDsO83Ts6tQ |
+| destinations/palm-jumeirah.jpg | The Palm from the air | Eslam Tawakol | unsplash.com/photos/an-island-in-the-middle-of-a-body-of-water-fjfNY4PsIoc |
+| destinations/burj-al-arab.jpg | Burj Al Arab from the beach | Darcey Beau | unsplash.com/photos/burj-al-arab-dubai-united-arab-emirates-during-daytime-vtK31JoeAFk |
+| destinations/dubai-creek.jpg | Abra station on the Creek | J Shim | unsplash.com/photos/zyd_9Jr90Fc |
+| destinations/abu-dhabi.jpg | Sheikh Zayed Grand Mosque | David Rodrigo | unsplash.com/photos/sheikh-zayed-grand-mosque-in-abu-dhabi-kZ1zThg6G40 |
+| destinations/sharjah.jpg | Sharjah waterfront | Ainur Kamaev | unsplash.com/photos/city-with-high-rise-buildings-viewing-sea-during-daytime-Z11iLvOggwQ |
+
 ## Promise icons
 
 3D icons from [3dicons](https://3dicons.co) by Vijay Verma, released CC0 —
