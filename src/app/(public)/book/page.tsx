@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { BookingForm } from "@/components/booking-form";
 import { paymentsEnabled } from "@/lib/payments/stripe";
+import { TrustBar } from "@/components/trust-bar";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
@@ -29,6 +30,10 @@ export default function BookPage() {
         Fill in your trip details — we&apos;ll confirm availability over WhatsApp
         within minutes.
       </p>
+
+      {/* Outside the boundary: nothing here suspends, so it should paint with
+          the page rather than behind the form's loading fallback. */}
+      <TrustBar />
 
       <Suspense fallback={<p className="text-sm text-ink-muted">Loading…</p>}>
         {/* Server-side check: the Stripe key must never reach the browser. */}

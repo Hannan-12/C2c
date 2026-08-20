@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { LegalList, LegalPage } from "@/components/legal-page";
 import { BRAND, BUSINESS, pageMetadata } from "@/lib/seo";
+import {
+  FREE_CANCEL_HOURS,
+  HOURLY_MINIMUM,
+  LATE_CANCEL_PERCENT,
+  WAIT_AIRPORT_MIN,
+  WAIT_STANDARD_MIN,
+} from "@/lib/service-terms";
 import { formatPhone } from "@/lib/format";
 
 export const metadata = pageMetadata({
@@ -26,11 +33,8 @@ export const metadata = pageMetadata({
  * the privacy policy.
  */
 
-const FREE_CANCEL_HOURS = 12;
-const LATE_CANCEL_PERCENT = 50;
-const WAIT_STANDARD_MIN = 15;
-const WAIT_AIRPORT_MIN = 60;
-const HOURLY_MINIMUM = 2;
+// Shared with the trust strip on /book, so the short claim and the legal
+// prose cannot drift apart. See lib/service-terms.ts.
 
 export default function TermsPage() {
   return (
