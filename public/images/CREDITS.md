@@ -38,3 +38,21 @@ file swap and needs no code change.
 | vehicles/suv.jpg | Black luxury SUV | rawkkim | unsplash.com/photos/a-sleek-black-luxury-suv-parked-indoors-_Xp1QW53Fz8 |
 | vehicles/vip.jpg | Black flagship saloon | Martin Katler | unsplash.com/photos/black-mercedes-benz-sedan-on-cobblestone-street-y3neNkE6efI |
 | vehicles/van.jpg | Silver people carrier | Cambo Auto | unsplash.com/photos/a-silver-minivan-parked-on-the-side-of-the-road-CHNoqIW7pfY |
+
+## Promise icons
+
+3D icons from [3dicons](https://3dicons.co) by Vijay Verma, released CC0 —
+public domain, commercial use permitted, no attribution required. Credited
+here anyway, in keeping with the rest of this file.
+
+Each was downloaded on a white background and the background flood-filled to
+transparency from the corners, so white *within* an icon survives. Filenames
+match the promise they sit beside in components/trust-bar.tsx.
+
+| File | Icon |
+|---|---|
+| promises/cancellation.png | Alarm clock |
+| promises/airport.png | Suitcase |
+| promises/confirmed.png | Shield with tick |
+| promises/fare.png | Wallet |
+| promises/support.png | WhatsApp |
