@@ -39,7 +39,7 @@ export function LocalBusinessSchema() {
         image: `${siteUrl()}/images/logo-badge.png`,
         logo: `${siteUrl()}/images/logo-badge.png`,
         description:
-          "Chauffeur rides, airport transfers, city tours and car rental across Dubai, Abu Dhabi and Sharjah. Every booking confirmed by a person.",
+          "Chauffeur rides, airport transfers, city tours and hourly hire across Dubai, Abu Dhabi and Sharjah. Every booking confirmed by a person.",
         telephone: `+${BUSINESS.whatsapp}`,
         email: BUSINESS.email,
         priceRange: "$$",

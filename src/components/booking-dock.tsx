@@ -13,7 +13,6 @@ export const NAV = [
   { href: "/book", label: "Book a Ride" },
   { href: "/airport-rides", label: "Airport Transfers" },
   { href: "/city-tour", label: "City Tours" },
-  { href: "/car-rentals", label: "Car Rentals" },
   { href: "/track", label: "Track Booking" },
   { href: "/faqs", label: "Help Center" },
 ];

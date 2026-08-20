@@ -13,7 +13,7 @@ import { formatPhone } from "@/lib/format";
 export const metadata = pageMetadata({
   title: "Terms & Conditions",
   description:
-    "Booking, fares, cancellations, waiting time and liability for Ride On Click chauffeur rides, hourly hire, airport transfers and car rental.",
+    "Booking, fares, cancellations, waiting time and liability for Ride On Click chauffeur rides, hourly hire and airport transfers.",
   path: "/terms",
 });
 
@@ -197,24 +197,6 @@ export default function TermsPage() {
                   "If you land and cannot find your driver, call us before booking another car — we will resolve it on the phone.",
                 ]}
               />
-            </>
-          ),
-        },
-        {
-          heading: "Car rental",
-          body: (
-            <>
-              <p>
-                Self-drive rental has additional requirements we confirm with
-                you before delivery — driving licence, minimum age, security
-                deposit and insurance excess all depend on the vehicle and on
-                whether you are a UAE resident.
-              </p>
-              <p>
-                Nothing is charged until those are agreed. You will never be
-                turned away at handover for a requirement we did not tell you
-                about.
-              </p>
             </>
           ),
         },
