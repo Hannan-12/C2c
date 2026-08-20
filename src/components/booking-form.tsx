@@ -10,6 +10,7 @@ import {
   formatPickup,
 } from "@/lib/format";
 import type { PaymentMethod, ServiceType, VehicleCategory } from "@/db/schema";
+import type { AllCategoriesQuote } from "@/lib/quote";
 import { PlaceInput } from "./place-input";
 
 type Tab = { id: ServiceType; label: string };
@@ -38,6 +39,14 @@ const VEHICLES: {
   blurb: string;
   seats: number;
   bags: number;
+  /**
+   * TODO(client): what each tier actually includes — free waiting minutes,
+   * meet & greet, porter service, water, wifi. Competitors list these per row
+   * and they are a real reason to pick one tier over another, but every entry
+   * is a promise made to a customer on the client's behalf. Left empty until
+   * the client confirms which are true; the row renders without them.
+   */
+  inclusions?: string[];
 }[] = [
   { id: "comfort", label: "Comfort", from: 45, blurb: "Saloon", seats: 3, bags: 2 },
   { id: "business", label: "Business", from: 85, blurb: "Executive saloon", seats: 3, bags: 3 },
@@ -111,12 +120,7 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
   const [customerEmail, setCustomerEmail] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
 
-  const [quote, setQuote] = useState<{
-    distanceKm: number | null;
-    durationMin: number | null;
-    fareEstimate: number;
-    currency: string;
-  } | null>(null);
+  const [quotes, setQuotes] = useState<AllCategoriesQuote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
 
@@ -188,8 +192,23 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
 
   // Derived rather than cleared via setState in the effect: resetting state
   // inside an effect body triggers a second render pass for no benefit.
-  const shownQuote = quoteReady ? quote : null;
+  const shownQuotes = quoteReady ? quotes : null;
   const shownQuoteError = quoteReady ? quoteError : null;
+
+  // The sidebar wants one fare; the vehicle step wants all of them. Both read
+  // from the same response.
+  const selectedFare =
+    shownQuotes?.vehicles.find((v) => v.category === vehicleCategory) ?? null;
+
+  const shownQuote =
+    shownQuotes && selectedFare
+      ? {
+          distanceKm: shownQuotes.distanceKm,
+          durationMin: shownQuotes.durationMin,
+          fareEstimate: selectedFare.fareEstimate,
+          currency: selectedFare.currency,
+        }
+      : null;
 
   useEffect(() => {
     if (!quoteReady) return;
@@ -202,13 +221,12 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
       setQuoteLoading(true);
       setQuoteError(null);
       try {
-        const res = await fetch("/api/quote", {
+        const res = await fetch("/api/quote/all", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           signal: controller.signal,
           body: JSON.stringify({
             serviceType,
-            vehicleCategory,
             pickupLocation,
             dropoffLocation: isHourly ? undefined : dropoffLocation,
             durationHours: isHourly ? Number(durationHours) : undefined,
@@ -216,14 +234,14 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
         });
         const data = await res.json();
         if (!res.ok) {
-          setQuote(null);
+          setQuotes(null);
           setQuoteError(data.error ?? "Could not calculate a fare");
           return;
         }
-        setQuote(data);
+        setQuotes(data);
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
-          setQuote(null);
+          setQuotes(null);
           setQuoteError("Could not calculate a fare right now");
         }
       } finally {
@@ -232,10 +250,12 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
     }, 600);
 
     return () => clearTimeout(timer);
+    // vehicleCategory is deliberately absent: one response prices every tier,
+    // so switching cars reads from what we already have instead of paying for
+    // another route measurement.
   }, [
     quoteReady,
     serviceType,
-    vehicleCategory,
     pickupLocation,
     dropoffLocation,
     durationHours,
@@ -432,63 +452,113 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
       )}
 
       {step === "vehicle" && (
-      <section className="card mb-4">
-        <h2 className="text-base font-semibold mb-4">Choose Vehicle</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <section className="mb-4" aria-labelledby="vehicle-heading">
+        <h2 id="vehicle-heading" className="display text-xl mb-1.5">
+          Choose your vehicle
+        </h2>
+        <p className="text-sm text-ink-muted mb-4">
+          Fares are for this trip, and include the driver. We confirm the final
+          fare with you before the ride is assigned.
+        </p>
+
+        {/*
+          One row per tier rather than a grid of small cards. Five cards across
+          gave each car about 170px, at which a photograph of a saloon and a
+          photograph of an executive saloon are the same grey smudge — and the
+          difference between them is what the customer is being asked to pay
+          for. A row affords a photograph worth showing plus the capacity and
+          the fare on one line.
+        */}
+        <ul className="grid gap-3">
           {VEHICLES.map((vehicle) => {
             const active = vehicle.id === vehicleCategory;
+            const fare = shownQuotes?.vehicles.find((v) => v.category === vehicle.id);
+
             return (
-              <button
-                key={vehicle.id}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setVehicleCategory(vehicle.id)}
-                className={`overflow-hidden rounded-card border text-left
-                  transition-[background-color,border-color,transform,box-shadow] duration-200
-                  ease-out-soft
-                  hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${
-                  active
-                    ? "border-accent bg-accent-soft shadow-[var(--shadow-lift)]"
-                    : "border-line bg-surface hover:border-accent/60 hover:shadow-[var(--shadow-lift)]"
-                }`}
-              >
-                {/*
-                  Fixed aspect box so five cards of differing photo dimensions
-                  keep one baseline; without it the row's height is set by
-                  whichever image happens to be tallest.
-                */}
-                <span className="block relative aspect-[8/5] bg-dock">
-                  <Image
-                    src={`/images/vehicles/${vehicle.id}.jpg`}
-                    alt=""
-                    fill
-                    sizes="(min-width: 1024px) 20vw, (min-width: 640px) 33vw, 50vw"
-                    className={`object-cover transition-opacity duration-200 ${
-                      active ? "opacity-100" : "opacity-85"
+              <li key={vehicle.id}>
+                <button
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setVehicleCategory(vehicle.id)}
+                  className={`w-full overflow-hidden rounded-card border text-left
+                    flex flex-col sm:flex-row
+                    transition-[background-color,border-color,box-shadow] duration-200
+                    ease-out-soft ${
+                      active
+                        ? "border-accent bg-accent-soft shadow-[var(--shadow-lift)]"
+                        : "border-line bg-surface hover:border-accent/60 hover:shadow-[var(--shadow-lift)]"
                     }`}
-                  />
-                </span>
-
-                <span className="block px-3 py-2.5">
-                  <span className="block text-sm font-semibold">{vehicle.label}</span>
-                  <span className="block text-[11px] text-ink-faint">{vehicle.blurb}</span>
-
-                  {/*
-                    Capacity as text, not icons: "3" beside a seat glyph is
-                    ambiguous about whether the driver counts, and these numbers
-                    are the whole reason someone picks one card over another.
-                  */}
-                  <span className="mt-1.5 block text-[11px] text-ink-muted">
-                    {vehicle.seats} seats · {vehicle.bags} bags
+                >
+                  <span className="relative block h-44 w-full shrink-0 bg-dock sm:h-auto sm:w-56 sm:self-stretch">
+                    <Image
+                      src={`/images/vehicles/${vehicle.id}.jpg`}
+                      alt=""
+                      fill
+                      sizes="(min-width: 640px) 14rem, 100vw"
+                      className="object-cover"
+                    />
                   </span>
-                  <span className="mt-1 block text-[11px] font-semibold">
-                    From {formatFare(vehicle.from)}
+
+                  <span className="flex flex-1 flex-col justify-center p-4 sm:p-5">
+                    <span className="block text-lg font-semibold">{vehicle.label}</span>
+                    <span className="block text-sm text-ink-muted">{vehicle.blurb}</span>
+
+                    <span className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm text-ink-muted">
+                      <span>{vehicle.seats} passengers</span>
+                      <span>Up to {vehicle.bags} suitcases</span>
+                    </span>
+
+                    {vehicle.inclusions && vehicle.inclusions.length > 0 && (
+                      <span className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-ink-muted">
+                        {vehicle.inclusions.map((item) => (
+                          <span key={item} className="flex items-center gap-1.5">
+                            <span className="size-1 rounded-full bg-accent" aria-hidden />
+                            {item}
+                          </span>
+                        ))}
+                      </span>
+                    )}
                   </span>
-                </span>
-              </button>
+
+                  <span
+                    className="flex shrink-0 items-center justify-between gap-3 border-t
+                               border-line p-4 sm:w-44 sm:flex-col sm:items-end
+                               sm:justify-center sm:border-l sm:border-t-0 sm:p-5"
+                  >
+                    {/*
+                      Falls back to the published from-price while the fare is
+                      still being measured, so the row never reads as free.
+                    */}
+                    <span className="text-right">
+                      {fare ? (
+                        <span className="block text-xl font-bold">
+                          {formatFare(fare.fareEstimate, fare.currency)}
+                        </span>
+                      ) : (
+                        <span className="block text-xl font-bold text-ink-faint">
+                          {quoteLoading ? "…" : `From ${formatFare(vehicle.from)}`}
+                        </span>
+                      )}
+                      {fare && (
+                        <span className="block text-[11px] text-ink-faint">
+                          estimated total
+                        </span>
+                      )}
+                    </span>
+
+                    <span
+                      className={`rounded-field px-4 py-2 text-sm font-semibold ${
+                        active ? "bg-accent text-ink" : "border border-line"
+                      }`}
+                    >
+                      {active ? "Selected" : "Select"}
+                    </span>
+                  </span>
+                </button>
+              </li>
             );
           })}
-        </div>
+        </ul>
       </section>
       )}
 
