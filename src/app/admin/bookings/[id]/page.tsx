@@ -40,6 +40,14 @@ const NEXT_STATUSES: Record<BookingStatus, BookingStatus[]> = {
   cancelled: ["requested"],
 };
 
+/** Operator-facing wording. "not_required" means cash, which is not a problem. */
+const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  not_required: "Not applicable — cash",
+  pending: "Awaiting payment",
+  paid: "Paid",
+  refunded: "Refunded",
+};
+
 export default async function BookingDetailPage({
   params,
 }: PageProps<"/admin/bookings/[id]">) {
@@ -141,6 +149,50 @@ export default async function BookingDetailPage({
                 }
               />
             </dl>
+          </section>
+
+          {/*
+            Payment is its own section rather than another Detail row: an
+            operator deciding whether to release a car needs to see at a glance
+            whether the money arrived, and that answer should not be buried
+            among the pickup address and the luggage count.
+          */}
+          <section className="card">
+            <h2 className="font-semibold mb-4">Payment</h2>
+            <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3.5 text-sm">
+              <Detail
+                label="Method"
+                value={booking.paymentMethod === "card" ? "Card (Stripe)" : "Cash to driver"}
+              />
+              <Detail label="Status" value={PAYMENT_STATUS_LABEL[booking.paymentStatus]} />
+              <Detail
+                label="Amount received"
+                value={
+                  booking.amountPaid ? formatFare(Number(booking.amountPaid)) : undefined
+                }
+              />
+              <Detail
+                label="Received at"
+                value={booking.paidAt ? formatPickup(booking.paidAt) : undefined}
+              />
+              {/*
+                The payment intent, not the session: it is the id Stripe's
+                dashboard search and any refund or dispute are keyed on.
+              */}
+              <Detail
+                label="Stripe reference"
+                value={booking.stripePaymentIntentId ?? undefined}
+              />
+            </dl>
+
+            {booking.paymentMethod === "card" &&
+              booking.paymentStatus !== "paid" &&
+              !booking.fareEstimate && (
+                <p className="mt-4 text-sm text-amber-700">
+                  No fare is set, so no payment link can be created. Confirming
+                  this booking will not produce one until a fare exists.
+                </p>
+              )}
           </section>
 
           <section className="card">

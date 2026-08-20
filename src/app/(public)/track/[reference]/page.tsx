@@ -18,6 +18,8 @@ import {
   whatsappLink,
 } from "@/lib/format";
 import { rateLimit } from "@/lib/rate-limit";
+import { PayButton } from "@/components/pay-button";
+import { paymentsEnabled } from "@/lib/payments/stripe";
 
 /** Status changes as the admin works the booking, so never cache this. */
 export const dynamic = "force-dynamic";
@@ -38,6 +40,13 @@ export default async function TrackingPage({
   const { reference } = await params;
   const query = await searchParams;
   const justBooked = query.new === "1";
+  /**
+   * Set by Stripe's success redirect. It is a hint, not proof: the customer
+   * can close the tab before it fires, or open this URL by hand. The webhook
+   * is what actually records payment, so this only softens the wait when the
+   * banner arrives before the webhook has landed.
+   */
+  const returnedFromCheckout = query.paid === "1";
 
   // The page hits the database directly rather than its own API, so the same
   // per-IP limit has to be applied here too — otherwise the rate limit on the
@@ -223,6 +232,59 @@ export default async function TrackingPage({
         </div>
 
         <aside className="lg:sticky lg:top-6 flex flex-col gap-4">
+          {booking.paymentMethod === "card" && !cancelled && (
+            <section className="animate-rise card">
+              <h2 className="text-sm font-bold uppercase tracking-widest text-ink-faint mb-3">
+                Payment
+              </h2>
+
+              {booking.paymentStatus === "paid" ? (
+                <>
+                  <p className="flex items-baseline justify-between gap-3">
+                    <span className="font-semibold text-green-700">Paid</span>
+                    {booking.amountPaid && (
+                      <span className="font-mono font-semibold">
+                        {formatFare(Number(booking.amountPaid))}
+                      </span>
+                    )}
+                  </p>
+                  {booking.paidAt && (
+                    <p className="mt-1 text-xs text-ink-faint">
+                      Received {formatPickup(booking.paidAt.toISOString())}
+                    </p>
+                  )}
+                </>
+              ) : booking.fareEstimate && paymentsEnabled() ? (
+                <>
+                  <p className="mb-3 text-sm text-ink-muted">
+                    {returnedFromCheckout
+                      ? "We're confirming your payment with the bank. This page updates once it clears — you don't need to pay again."
+                      : "Your fare is agreed. Pay securely by card, or settle with the driver if you'd rather."}
+                  </p>
+                  {!returnedFromCheckout && (
+                    <>
+                      <p className="mb-3 flex items-baseline justify-between gap-3">
+                        <span className="text-ink-muted">Amount</span>
+                        <span className="font-mono text-lg font-bold">
+                          {formatFare(Number(booking.fareEstimate))}
+                        </span>
+                      </p>
+                      <PayButton reference={booking.referenceCode} />
+                      <p className="mt-2 text-[11px] text-ink-faint">
+                        Handled by Stripe. We never see your card details.
+                      </p>
+                    </>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-ink-muted">
+                  We&apos;ll confirm the fare with you first, then send a secure
+                  payment link.
+                </p>
+              )}
+            </section>
+          )}
+
           {booking.driver ? (
             <section className="animate-rise rounded-card bg-dock text-ink-inverse p-5">
               <h2 className="text-sm font-bold uppercase tracking-widest mb-4">
