@@ -11,6 +11,7 @@ import {
 } from "@/lib/format";
 import type { PaymentMethod, ServiceType, VehicleCategory } from "@/db/schema";
 import type { AllCategoriesQuote } from "@/lib/quote";
+import { VEHICLE_SPECS, smallestFitting, vehicleSpec } from "@/lib/vehicles";
 import { PlaceInput } from "./place-input";
 
 type Tab = { id: ServiceType; label: string };
@@ -20,39 +21,6 @@ const TABS: Tab[] = [
   { id: "hourly", label: "Book Hourly" },
   { id: "city_tour", label: "City Tour" },
   { id: "airport", label: "Airport" },
-];
-
-/**
- * Photographs rather than the emoji that stood here before. An emoji is drawn
- * by the reader's operating system, so the same card showed a different car on
- * every device and none of them said anything about the tier — 🚗 and 🚙 do not
- * read as "sedan" versus "executive sedan" to anyone choosing between them.
- *
- * `seats` and `bags` are what the choice actually turns on. A customer with
- * four passengers and four suitcases is not comparing paint; they are working
- * out what fits.
- */
-const VEHICLES: {
-  id: VehicleCategory;
-  label: string;
-  from: number;
-  blurb: string;
-  seats: number;
-  bags: number;
-  /**
-   * TODO(client): what each tier actually includes — free waiting minutes,
-   * meet & greet, porter service, water, wifi. Competitors list these per row
-   * and they are a real reason to pick one tier over another, but every entry
-   * is a promise made to a customer on the client's behalf. Left empty until
-   * the client confirms which are true; the row renders without them.
-   */
-  inclusions?: string[];
-}[] = [
-  { id: "comfort", label: "Comfort", from: 45, blurb: "Saloon", seats: 3, bags: 2 },
-  { id: "business", label: "Business", from: 85, blurb: "Executive saloon", seats: 3, bags: 3 },
-  { id: "suv", label: "SUV", from: 120, blurb: "Large 4x4", seats: 5, bags: 4 },
-  { id: "vip", label: "VIP", from: 220, blurb: "First class", seats: 3, bags: 3 },
-  { id: "van", label: "Van", from: 110, blurb: "People carrier", seats: 7, bags: 6 },
 ];
 
 type FieldErrors = Record<string, string>;
@@ -140,8 +108,24 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
     pickupDate.length > 0 &&
     pickupTime.length > 0;
 
+  /**
+   * Capacity against the chosen car. Caught here as well as on the server so
+   * the customer is told at the step where they can still fix it, rather than
+   * after pressing Confirm.
+   */
+  const chosen = vehicleSpec(vehicleCategory);
+  const overSeats = chosen ? Number(passengerCount) > chosen.seats : false;
+  const overBags = chosen ? Number(luggageCount) > chosen.bags : false;
+  const overCapacity = overSeats || overBags;
+
+  const suggestion = overCapacity
+    ? smallestFitting(Number(passengerCount), Number(luggageCount))
+    : undefined;
+
   const detailsComplete =
-    customerName.trim().length > 0 && customerWhatsapp.trim().length > 0;
+    customerName.trim().length > 0 &&
+    customerWhatsapp.trim().length > 0 &&
+    !overCapacity;
 
   /**
    * Derived, never stored. The URL asks for a step and the entered data decides
@@ -470,7 +454,7 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
           the fare on one line.
         */}
         <ul className="grid gap-3">
-          {VEHICLES.map((vehicle) => {
+          {VEHICLE_SPECS.map((vehicle) => {
             const active = vehicle.id === vehicleCategory;
             const fare = shownQuotes?.vehicles.find((v) => v.category === vehicle.id);
 
@@ -566,6 +550,37 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
       <section className="card mb-6">
         <h2 className="text-base font-semibold mb-4">Passenger Details</h2>
 
+        {/*
+          Says which car, because the capacity limits below only make sense
+          against it — and offers the fix rather than only the complaint. The
+          suggestion is a button: telling someone they need a bigger car and
+          making them walk back a step to get one is a needless obstacle.
+        */}
+        {overCapacity && chosen && (
+          <div
+            role="alert"
+            className="mb-4 rounded-field border border-amber-300 bg-amber-50 px-4 py-3 text-sm"
+          >
+            <p className="text-amber-900">
+              {overSeats
+                ? `${chosen.label} seats ${chosen.seats}.`
+                : `${chosen.label} takes ${chosen.bags} suitcases.`}{" "}
+              {suggestion
+                ? `${suggestion.label} fits ${passengerCount} passengers and ${luggageCount} suitcases.`
+                : "No single vehicle fits this party — message us and we'll arrange two cars."}
+            </p>
+            {suggestion && (
+              <button
+                type="button"
+                onClick={() => setVehicleCategory(suggestion.id)}
+                className="mt-2 font-semibold text-amber-900 underline underline-offset-2"
+              >
+                Switch to {suggestion.label}
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
             <label className="field-label" htmlFor="passengerCount">
@@ -581,8 +596,18 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
               className="field-input"
               required
             />
-            {fieldErrors.passengerCount && (
+            {fieldErrors.passengerCount ? (
               <FieldError>{fieldErrors.passengerCount}</FieldError>
+            ) : (
+              chosen && (
+                <p
+                  className={`mt-1.5 text-xs ${
+                    overSeats ? "text-amber-700" : "text-ink-faint"
+                  }`}
+                >
+                  {chosen.label} seats {chosen.seats}
+                </p>
+              )
             )}
           </div>
 
@@ -599,6 +624,19 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
               onChange={(e) => setLuggageCount(e.target.value)}
               className="field-input"
             />
+            {fieldErrors.luggageCount ? (
+              <FieldError>{fieldErrors.luggageCount}</FieldError>
+            ) : (
+              chosen && (
+                <p
+                  className={`mt-1.5 text-xs ${
+                    overBags ? "text-amber-700" : "text-ink-faint"
+                  }`}
+                >
+                  Up to {chosen.bags} suitcases
+                </p>
+              )
+            )}
           </div>
 
           <Field
@@ -640,20 +678,71 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
       </section>
       )}
 
+      {step === "payment" && (
+        <section className="card mb-4" aria-labelledby="review-heading">
+          <h2 id="review-heading" className="text-base font-semibold mb-4">
+            Review your booking
+          </h2>
+
+          {/*
+            A last look before committing. The steps behind this one are each a
+            click away in the rail, so the review states what was chosen rather
+            than repeating the controls for changing it.
+          */}
+          <dl className="text-sm">
+            <ReviewRow label="Service" value={TABS.find((t) => t.id === serviceType)?.label} />
+            <ReviewRow label="From" value={pickupLocation} />
+            <ReviewRow label="To" value={isHourly ? undefined : dropoffLocation} />
+            <ReviewRow
+              label={isHourly ? "Booked for" : "Pickup"}
+              value={
+                isHourly
+                  ? `${durationHours} hours from ${pickupDatetime ? formatPickup(pickupDatetime) : ""}`
+                  : pickupDatetime
+                    ? formatPickup(pickupDatetime)
+                    : undefined
+              }
+            />
+            <ReviewRow label="Vehicle" value={chosen?.label} />
+            <ReviewRow
+              label="Party"
+              value={`${passengerCount} passengers · ${luggageCount} suitcases`}
+            />
+            <ReviewRow label="Name" value={customerName} />
+            <ReviewRow label="WhatsApp" value={customerWhatsapp} />
+            <ReviewRow label="Email" value={customerEmail || undefined} />
+
+            <div className="mt-3 pt-3 border-t border-line flex items-baseline justify-between">
+              <dt className="font-semibold">Estimated fare</dt>
+              <dd className="text-xl font-bold">
+                {shownQuote
+                  ? formatFare(shownQuote.fareEstimate, shownQuote.currency)
+                  : "To be confirmed"}
+              </dd>
+            </div>
+          </dl>
+        </section>
+      )}
+
       {/*
-        Hidden entirely when Stripe is not configured, rather than shown and
-        disabled: offering card and then failing at the link stage is worse
-        than never offering it. Cash remains the submitted value.
+        The card option is hidden entirely when Stripe is not configured,
+        rather than shown and disabled: offering card and then failing at the
+        link stage is worse than never offering it. The section itself still
+        renders, because a payment step that says nothing about how to pay
+        reads as unfinished.
       */}
-      {step === "payment" && cardEnabled && (
+      {step === "payment" && (
         <section className="mb-8" aria-labelledby="payment-heading">
           <h2 id="payment-heading" className="display text-xl mb-1.5">
-            How would you like to pay?
+            {cardEnabled ? "How would you like to pay?" : "Payment"}
           </h2>
           <p className="text-sm text-ink-muted mb-4">
-            Nothing is charged now. We confirm the fare with you first.
+            {cardEnabled
+              ? "Nothing is charged now. We confirm the fare with you first."
+              : "Pay the driver directly at the end of your ride. Nothing is charged now."}
           </p>
 
+          {cardEnabled && (
           <div role="radiogroup" aria-labelledby="payment-heading" className="grid sm:grid-cols-2 gap-3">
             {PAYMENT_CHOICES.map((choice) => {
               const active = paymentMethod === choice.id;
@@ -689,6 +778,7 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
               );
             })}
           </div>
+          )}
         </section>
       )}
 
@@ -760,7 +850,7 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
         vehicleLabel={
           step === "trip"
             ? undefined
-            : VEHICLES.find((v) => v.id === vehicleCategory)?.label
+            : vehicleSpec(vehicleCategory)?.label
         }
         passengers={passengerCount}
         durationHours={isHourly ? durationHours : undefined}
@@ -957,6 +1047,16 @@ function TripSummary({
         </p>
       )}
     </aside>
+  );
+}
+
+function ReviewRow({ label, value }: { label: string; value?: string }) {
+  if (!value) return null;
+  return (
+    <div className="flex items-baseline justify-between gap-6 py-1.5 border-b border-line last:border-0">
+      <dt className="text-ink-muted shrink-0">{label}</dt>
+      <dd className="text-right font-medium">{value}</dd>
+    </div>
   );
 }
 

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PAYMENT_METHODS, SERVICE_TYPES, VEHICLE_CATEGORIES } from "@/db/schema";
+import { vehicleSpec } from "@/lib/vehicles";
 
 const stopSchema = z.object({
   address: z.string().min(1).max(500),
@@ -66,6 +67,29 @@ export const createBookingSchema = z
   .refine((d) => d.pickupDatetime.getTime() > Date.now() - 5 * 60 * 1000, {
     message: "Pickup time must be in the future",
     path: ["pickupDatetime"],
+  })
+  // Capacity is a rule, not a hint. Eight passengers in a three-seat saloon is
+  // a booking the business cannot fulfil, and it should be refused whatever
+  // sends it — our form, a future app, or a curl.
+  .superRefine((d, ctx) => {
+    const spec = vehicleSpec(d.vehicleCategory);
+    if (!spec) return;
+
+    if (d.passengerCount > spec.seats) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["passengerCount"],
+        message: `${spec.label} seats ${spec.seats}. Choose a larger vehicle for ${d.passengerCount} passengers.`,
+      });
+    }
+
+    if (d.luggageCount > spec.bags) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["luggageCount"],
+        message: `${spec.label} takes ${spec.bags} suitcases. Choose a larger vehicle for ${d.luggageCount}.`,
+      });
+    }
   });
 
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
