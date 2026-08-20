@@ -49,6 +49,28 @@ const VEHICLES: {
 type FieldErrors = Record<string, string>;
 
 /**
+ * The booking runs as four screens, not one long form.
+ *
+ * `trip` is the entry state and is not a numbered step: the dock and the
+ * homepage widget already collect a route, so most arrivals skip it and land
+ * on `vehicle`. Numbering it would show every one of those customers a
+ * completed step they never saw.
+ *
+ * The step lives in the URL so Back works and a half-finished booking survives
+ * a refresh. The route travels with it; the customer's name and number do not
+ * — those stay in memory, because a phone number does not belong in a URL, in
+ * browser history, or in a link someone pastes into a chat.
+ */
+const STEP_ORDER = ["trip", "vehicle", "details", "payment"] as const;
+type Step = (typeof STEP_ORDER)[number];
+
+const NUMBERED_STEPS: { id: Step; label: string }[] = [
+  { id: "vehicle", label: "Vehicle" },
+  { id: "details", label: "Details" },
+  { id: "payment", label: "Payment" },
+];
+
+/**
  * How the customer wants to settle up. Cash is first and is the default: it is
  * how this business already works, and card is the addition.
  *
@@ -75,9 +97,11 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
   const [dropoffLocation, setDropoffLocation] = useState(params.get("dropoff") ?? "");
   const [pickupDate, setPickupDate] = useState(params.get("date") ?? "");
   const [pickupTime, setPickupTime] = useState(params.get("time") ?? "");
-  const [durationHours, setDurationHours] = useState("2");
+  const [durationHours, setDurationHours] = useState(params.get("duration") ?? "2");
   const [flightNumber, setFlightNumber] = useState("");
-  const [vehicleCategory, setVehicleCategory] = useState<VehicleCategory>("business");
+  const [vehicleCategory, setVehicleCategory] = useState<VehicleCategory>(
+    (params.get("vehicle") as VehicleCategory | null) ?? "business",
+  );
   const [passengerCount, setPassengerCount] = useState("2");
   const [luggageCount, setLuggageCount] = useState("1");
   const [customerName, setCustomerName] = useState("");
@@ -105,6 +129,50 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
 
   const pickupDatetime =
     pickupDate && pickupTime ? `${pickupDate}T${pickupTime}:00` : "";
+
+  const tripComplete =
+    pickupLocation.trim().length > 0 &&
+    (isHourly || dropoffLocation.trim().length > 0) &&
+    pickupDate.length > 0 &&
+    pickupTime.length > 0;
+
+  const detailsComplete =
+    customerName.trim().length > 0 && customerWhatsapp.trim().length > 0;
+
+  /**
+   * Derived, never stored. The URL asks for a step and the entered data decides
+   * how far that request can be honoured, so opening /book?step=payment cold
+   * lands on the first screen that still needs filling in rather than on a
+   * confirm button with nothing behind it.
+   */
+  const requestedStep = (params.get("step") ??
+    (tripComplete ? "vehicle" : "trip")) as Step;
+  const reachableIndex = !tripComplete ? 0 : !detailsComplete ? 2 : 3;
+  const requestedIndex = STEP_ORDER.indexOf(requestedStep);
+  const step =
+    STEP_ORDER[Math.min(requestedIndex < 0 ? 0 : requestedIndex, reachableIndex)];
+
+  function goTo(next: Step) {
+    const query = new URLSearchParams(params.toString());
+    query.set("step", next);
+
+    // The route rides in the URL so a refresh mid-flow keeps it.
+    query.set("serviceType", serviceType);
+    query.set("pickup", pickupLocation);
+    query.set("vehicle", vehicleCategory);
+    if (pickupDate) query.set("date", pickupDate);
+    if (pickupTime) query.set("time", pickupTime);
+
+    if (isHourly) {
+      query.set("duration", durationHours);
+      query.delete("dropoff");
+    } else {
+      query.delete("duration");
+      if (dropoffLocation) query.set("dropoff", dropoffLocation);
+    }
+
+    router.push(`/book?${query.toString()}`);
+  }
 
   /**
    * Debounced live quote.
@@ -176,6 +244,14 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+
+    // One <form> across every step, so Enter behaves the same on all of them:
+    // it advances, and only commits on the last one.
+    if (step !== "payment") {
+      goTo(STEP_ORDER[STEP_ORDER.indexOf(step) + 1]);
+      return;
+    }
+
     setSubmitting(true);
     setFieldErrors({});
     setFormError(null);
@@ -229,6 +305,12 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
   return (
     <div className="grid lg:grid-cols-[1fr_320px] gap-8 items-start">
     <form onSubmit={handleSubmit} noValidate>
+      {step !== "trip" && (
+        <BookingSteps current={step} onJump={goTo} reachableIndex={reachableIndex} />
+      )}
+
+      {step === "trip" && (
+      <>
       <div role="tablist" aria-label="Service type" className="flex flex-wrap gap-2 mb-7">
         {TABS.map((tab) => {
           const active = tab.id === serviceType;
@@ -346,7 +428,10 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
           )}
         </div>
       </section>
+      </>
+      )}
 
+      {step === "vehicle" && (
       <section className="card mb-4">
         <h2 className="text-base font-semibold mb-4">Choose Vehicle</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -405,7 +490,9 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
           })}
         </div>
       </section>
+      )}
 
+      {step === "details" && (
       <section className="card mb-6">
         <h2 className="text-base font-semibold mb-4">Passenger Details</h2>
 
@@ -481,13 +568,14 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
           </div>
         </div>
       </section>
+      )}
 
       {/*
         Hidden entirely when Stripe is not configured, rather than shown and
         disabled: offering card and then failing at the link stage is worse
         than never offering it. Cash remains the submitted value.
       */}
-      {cardEnabled && (
+      {step === "payment" && cardEnabled && (
         <section className="mb-8" aria-labelledby="payment-heading">
           <h2 id="payment-heading" className="display text-xl mb-1.5">
             How would you like to pay?
@@ -544,36 +632,149 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
         </p>
       )}
 
-      <div className="flex flex-wrap items-center justify-end gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        {step !== "trip" && (
+          <button
+            type="button"
+            onClick={() => goTo(STEP_ORDER[STEP_ORDER.indexOf(step) - 1])}
+            className="btn-secondary"
+          >
+            ← Back
+          </button>
+        )}
+
         {shownQuote && !quoteLoading && (
-          <p className="mr-auto text-sm text-ink-muted">
+          <p className="ml-auto text-sm text-ink-muted">
             Estimated fare{" "}
             <strong className="text-ink">
               {formatFare(shownQuote.fareEstimate, shownQuote.currency)}
             </strong>
           </p>
         )}
-        <button type="submit" disabled={submitting} className="btn-primary">
-          {submitting ? "Submitting…" : "Confirm Booking →"}
+
+        {/*
+          Disabled rather than hidden while the step is incomplete: a button
+          that vanishes leaves the customer looking for what they missed, and a
+          disabled one sits where they expect it with the fields still visible
+          above. Validation on submit still has the final say.
+        */}
+        <button
+          type="submit"
+          disabled={
+            submitting ||
+            (step === "trip" && !tripComplete) ||
+            (step === "details" && !detailsComplete)
+          }
+          className={`btn-primary ${shownQuote && !quoteLoading ? "" : "ml-auto"}`}
+        >
+          {step === "payment"
+            ? submitting
+              ? "Submitting…"
+              : "Confirm Booking →"
+            : "Continue →"}
         </button>
       </div>
 
-      <p className="mt-4 text-xs text-ink-faint">
-        Submitting sends a booking request. We&apos;ll confirm availability and
-        the final fare over WhatsApp before your ride is assigned.
-      </p>
+      {step === "payment" && (
+        <p className="mt-4 text-xs text-ink-faint">
+          Submitting sends a booking request. We&apos;ll confirm availability and
+          the final fare over WhatsApp before your ride is assigned.
+        </p>
+      )}
     </form>
 
       <TripSummary
         from={pickupLocation}
         to={isHourly ? undefined : dropoffLocation}
         pickupLabel={pickupDatetime ? formatPickup(pickupDatetime) : undefined}
-        vehicleLabel={VEHICLES.find((v) => v.id === vehicleCategory)?.label}
+        vehicleLabel={
+          step === "trip"
+            ? undefined
+            : VEHICLES.find((v) => v.id === vehicleCategory)?.label
+        }
+        passengers={passengerCount}
+        durationHours={isHourly ? durationHours : undefined}
         quote={shownQuote}
         loading={quoteLoading}
         error={shownQuoteError}
       />
     </div>
+  );
+}
+
+/**
+ * The progress rail.
+ *
+ * A completed step is a link back, not just a marker: the commonest thing a
+ * customer wants at the payment step is to change the car, and making them
+ * press Back twice to do it is the sort of friction that loses the booking.
+ * Steps ahead of the data are inert — there is nothing to show yet.
+ */
+function BookingSteps({
+  current,
+  onJump,
+  reachableIndex,
+}: {
+  current: Step;
+  onJump: (step: Step) => void;
+  reachableIndex: number;
+}) {
+  const currentIndex = STEP_ORDER.indexOf(current);
+
+  return (
+    <ol className="relative flex items-start justify-between mb-8">
+      {/* The rail itself, behind the nodes. Inset by half a node so it starts
+          and ends at the first and last centres rather than at the edges. */}
+      <div
+        aria-hidden
+        className="absolute left-[12.5%] right-[12.5%] top-2 h-px bg-line"
+      />
+
+      {NUMBERED_STEPS.map((s, i) => {
+        const index = STEP_ORDER.indexOf(s.id);
+        const done = index < currentIndex;
+        const active = index === currentIndex;
+        const reachable = index <= reachableIndex;
+
+        return (
+          <li key={s.id} className="relative flex-1 text-center">
+            <button
+              type="button"
+              onClick={() => reachable && onJump(s.id)}
+              disabled={!reachable}
+              aria-current={active ? "step" : undefined}
+              className="group flex w-full flex-col items-center gap-2
+                         disabled:cursor-default"
+            >
+              <span
+                aria-hidden
+                className={`grid size-4 place-items-center rounded-full border-2
+                  bg-canvas transition-colors duration-200 ${
+                    active
+                      ? "border-accent"
+                      : done
+                        ? "border-accent bg-accent"
+                        : "border-line"
+                  }`}
+              >
+                {active && <span className="size-1.5 rounded-full bg-accent" />}
+              </span>
+              <span
+                className={`text-sm transition-colors duration-200 ${
+                  active
+                    ? "font-semibold text-ink"
+                    : done
+                      ? "text-ink-muted group-hover:text-ink"
+                      : "text-ink-faint"
+                }`}
+              >
+                {i + 1}. {s.label}
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -607,6 +808,8 @@ function TripSummary({
   to,
   pickupLabel,
   vehicleLabel,
+  passengers,
+  durationHours,
   quote,
   loading,
   error,
@@ -615,6 +818,9 @@ function TripSummary({
   to?: string;
   pickupLabel?: string;
   vehicleLabel?: string;
+  passengers?: string;
+  /** Hourly bookings only — they have hours booked instead of a distance. */
+  durationHours?: string;
   quote: {
     distanceKm: number | null;
     durationMin: number | null;
@@ -624,13 +830,6 @@ function TripSummary({
   loading: boolean;
   error: string | null;
 }) {
-  const trip = [
-    quote?.distanceKm != null ? formatDistance(quote.distanceKm) : null,
-    quote?.durationMin != null ? formatDuration(quote.durationMin) : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-
   return (
     <aside className="animate-rise lg:sticky lg:top-6 rounded-card bg-dock text-ink-inverse p-5">
       <h2 className="text-sm font-bold uppercase tracking-[0.06em] mb-4">
@@ -642,7 +841,31 @@ function TripSummary({
         <SummaryRow label="To" value={to} />
         <SummaryRow label="Pickup" value={pickupLabel} />
         <SummaryRow label="Vehicle" value={vehicleLabel} />
-        <SummaryRow label="Trip" value={trip || undefined} />
+
+        {/*
+          Distance and duration on their own rows rather than joined by a dot.
+          They answer different questions — "is this the route I meant?" and
+          "how long am I in the car?" — and a customer scanning for one of them
+          should not have to parse a compound string to find it.
+        */}
+        <SummaryRow
+          label="Distance"
+          value={quote?.distanceKm != null ? formatDistance(quote.distanceKm) : undefined}
+        />
+        <SummaryRow
+          label={durationHours ? "Booked for" : "Duration"}
+          value={
+            durationHours
+              ? `${durationHours} hours`
+              : quote?.durationMin != null
+                ? formatDuration(quote.durationMin)
+                : undefined
+          }
+        />
+        <SummaryRow
+          label="Passengers"
+          value={passengers && passengers !== "0" ? passengers : undefined}
+        />
 
         <div className="mt-4 pt-4 border-t border-dock-border flex items-baseline justify-between">
           <dt className="text-ink-inverse/55">Estimated</dt>
