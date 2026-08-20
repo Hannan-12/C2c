@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { bookings, bookingAssignments, drivers } from "@/db/schema";
 import { isValidReferenceCode, normaliseReferenceCode } from "./reference-code";
 import type { BookingStatus } from "./booking-status";
+import type { PaymentMethod, PaymentStatus } from "@/db/schema";
 
 /**
  * Shape returned to the public tracking page and the tracking API.
@@ -27,6 +28,15 @@ export type PublicBooking = {
   durationMin: number | null;
   fareEstimate: string | null;
   customerName: string;
+  /**
+   * Payment state, but never Stripe's identifiers. A session id in a page
+   * anyone with the reference can load is an internal handle leaking into
+   * public view for no gain — the pay route mints a fresh session instead.
+   */
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
+  amountPaid: string | null;
+  paidAt: Date | null;
   driver: { name: string; whatsapp: string; vehicle: string | null } | null;
 };
 
@@ -56,6 +66,10 @@ export async function getBookingByReference(
       durationMin: bookings.durationMin,
       fareEstimate: bookings.fareEstimate,
       customerName: bookings.customerName,
+      paymentMethod: bookings.paymentMethod,
+      paymentStatus: bookings.paymentStatus,
+      amountPaid: bookings.amountPaid,
+      paidAt: bookings.paidAt,
       driverName: drivers.name,
       driverWhatsapp: drivers.whatsappNumber,
       driverVehicle: drivers.vehicleAssigned,
@@ -87,6 +101,10 @@ export async function getBookingByReference(
     durationMin: row.durationMin,
     fareEstimate: row.fareEstimate,
     customerName: row.customerName,
+    paymentMethod: row.paymentMethod,
+    paymentStatus: row.paymentStatus,
+    amountPaid: row.amountPaid,
+    paidAt: row.paidAt,
     driver: driverVisible
       ? {
           name: row.driverName!,

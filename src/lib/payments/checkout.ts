@@ -4,6 +4,7 @@ import { bookings } from "@/db/schema";
 import { canonical } from "@/lib/seo";
 import { createCheckoutSession, paymentsEnabled } from "./stripe";
 import { dbErrorMessage } from "@/lib/db-error";
+import { isValidReferenceCode, normaliseReferenceCode } from "@/lib/reference-code";
 
 /**
  * Creates the payment link for a confirmed card booking.
@@ -71,4 +72,27 @@ export async function ensurePaymentLink(bookingId: string): Promise<string | nul
     );
     return null;
   }
+}
+
+/**
+ * Same thing, addressed by the customer's own reference code.
+ *
+ * The tracking page needs this: the payment link is emailed once, and an email
+ * gets lost or never arrives if no address was given. Anyone holding a
+ * reference code can already see the booking, and the worst this grants is the
+ * ability to pay someone else's fare.
+ */
+export async function ensurePaymentLinkByReference(
+  reference: string,
+): Promise<string | null> {
+  const code = normaliseReferenceCode(reference);
+  if (!isValidReferenceCode(code)) return null;
+
+  const [row] = await db
+    .select({ id: bookings.id })
+    .from(bookings)
+    .where(eq(bookings.referenceCode, code))
+    .limit(1);
+
+  return row ? ensurePaymentLink(row.id) : null;
 }
