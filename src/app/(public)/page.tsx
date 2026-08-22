@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { RouteBoard } from "@/components/route-board";
 import { LocalBusinessSchema } from "@/components/structured-data";
 import { DestinationSlider } from "@/components/destination-slider";
+import { FleetTable } from "@/components/fleet-table";
 
 /** Pricing changes rarely; an hour-old board is fine and keeps the page fast. */
 export const revalidate = 3600;
@@ -26,14 +27,6 @@ const SERVICES = [
     copy: "A driver for the day, on your route",
     detail: "Priced by the hour, not the meter",
   },
-];
-
-const FLEET = [
-  { label: "Comfort", seats: 3, bags: 2, from: 45 },
-  { label: "Business", seats: 3, bags: 2, from: 85 },
-  { label: "SUV", seats: 5, bags: 4, from: 120 },
-  { label: "VIP", seats: 3, bags: 2, from: 220 },
-  { label: "Van", seats: 7, bags: 6, from: 110 },
 ];
 
 const STEPS = [
@@ -159,53 +152,13 @@ export default function HomePage() {
           Pick a class when you book. Starting fares shown.
         </p>
 
-        <div className="rounded-card bg-dock text-ink-inverse overflow-x-auto">
-          <table className="w-full text-sm min-w-130">
-            <caption className="sr-only">
-              Vehicle classes with capacity and starting fares
-            </caption>
-            <thead>
-              <tr className="text-[11px] uppercase tracking-widest text-ink-inverse/40">
-                <th scope="col" className="text-left font-medium px-5 sm:px-6 py-3">
-                  Class
-                </th>
-                <th scope="col" className="text-right font-medium px-4 py-3">
-                  Seats
-                </th>
-                <th scope="col" className="text-right font-medium px-4 py-3">
-                  Bags
-                </th>
-                <th scope="col" className="text-right font-medium px-5 sm:px-6 py-3">
-                  From
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {FLEET.map((vehicle) => (
-                <tr
-                  key={vehicle.label}
-                  className="border-t border-dock-border transition-colors duration-200 hover:bg-white/5"
-                >
-                  <th
-                    scope="row"
-                    className="text-left font-medium px-5 sm:px-6 py-3.5"
-                  >
-                    {vehicle.label}
-                  </th>
-                  <td className="tnum text-right font-mono px-4 py-3.5 text-ink-inverse/70">
-                    {vehicle.seats}
-                  </td>
-                  <td className="tnum text-right font-mono px-4 py-3.5 text-ink-inverse/70">
-                    {vehicle.bags}
-                  </td>
-                  <td className="tnum text-right font-mono px-5 sm:px-6 py-3.5 text-accent">
-                    AED {vehicle.from}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Suspense
+          fallback={
+            <div className="rounded-card bg-dock h-72 animate-pulse" aria-hidden />
+          }
+        >
+          <FleetTable />
+        </Suspense>
       </section>
 
       <DestinationSlider />

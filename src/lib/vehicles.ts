@@ -52,3 +52,4 @@ export function smallestFitting(
     .sort((a, b) => a.from - b.from)
     .find((v) => v.seats >= passengers && v.bags >= bags);
 }
+
