@@ -175,6 +175,18 @@ export default async function BookingDetailPage({
                 label="Received at"
                 value={booking.paidAt ? formatPickup(booking.paidAt) : undefined}
               />
+              <Detail
+                label="Refunded"
+                value={
+                  booking.amountRefunded
+                    ? formatFare(Number(booking.amountRefunded))
+                    : undefined
+                }
+              />
+              <Detail
+                label="Refunded at"
+                value={booking.refundedAt ? formatPickup(booking.refundedAt) : undefined}
+              />
               {/*
                 The payment intent, not the session: it is the id Stripe's
                 dashboard search and any refund or dispute are keyed on.
@@ -184,6 +196,21 @@ export default async function BookingDetailPage({
                 value={booking.stripePaymentIntentId ?? undefined}
               />
             </dl>
+
+            {/*
+              Refunds are issued in the Stripe dashboard, not here. Said out
+              loud because an operator looking at a cancelled paid booking
+              needs to know there is no button coming — and because the figures
+              above only appear once Stripe tells us, so an empty "Refunded"
+              row means the refund has not been sent, not that it failed.
+            */}
+            {booking.paymentStatus === "paid" && booking.stripePaymentIntentId && (
+              <p className="mt-4 text-sm text-ink-muted">
+                Refund from the Stripe dashboard, searching the reference above.
+                It appears here, and on the customer's tracking page, within a
+                minute of being issued.
+              </p>
+            )}
 
             {booking.paymentMethod === "card" &&
               booking.paymentStatus !== "paid" &&

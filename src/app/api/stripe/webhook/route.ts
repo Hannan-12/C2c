@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, ne, or, isNull, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { bookings } from "@/db/schema";
 import { verifyWebhookSignature } from "@/lib/payments/stripe";
@@ -8,10 +8,18 @@ import { dbErrorMessage } from "@/lib/db-error";
 /**
  * Stripe payment webhook.
  *
- * This is the only place a booking is marked paid. The browser redirect after
- * checkout is not proof of anything — a customer can close the tab before it
- * fires, or open the success URL directly — so the money is recorded here,
- * where Stripe tells us server-to-server and signs what it says.
+ * This is the only place a booking is marked paid or refunded. The browser
+ * redirect after checkout is not proof of anything — a customer can close the
+ * tab before it fires, or open the success URL directly — so the money is
+ * recorded here, where Stripe tells us server-to-server and signs what it
+ * says.
+ *
+ * Refunds are issued by a person in the Stripe dashboard, not by this app.
+ * That is deliberate: a refund is an irreversible movement of someone else's
+ * money, it is decided case by case against the refund policy, and the
+ * dashboard already has the audit trail and the partial-refund controls. What
+ * the app owes the customer is an honest record of it, which is what
+ * charge.refunded provides.
  */
 
 /** Stripe retries on any non-2xx, so a 500 here means "try me again". */
@@ -41,6 +49,10 @@ export async function POST(req: Request) {
 
   // Every other event type is acknowledged and ignored, so enabling extra
   // events in the Stripe dashboard never produces retry storms here.
+  if (event.type === "charge.refunded") {
+    return recordRefund(event.data?.object ?? {});
+  }
+
   if (event.type !== "checkout.session.completed") {
     return NextResponse.json({ received: true });
   }
@@ -97,6 +109,80 @@ export async function POST(req: Request) {
     // 500 so Stripe retries — the customer has been charged and the booking
     // must not stay unpaid in our records.
     return NextResponse.json({ error: "Could not record payment" }, { status: 500 });
+  }
+
+  return NextResponse.json({ received: true });
+}
+
+/**
+ * A refund issued in the Stripe dashboard, mirrored onto the booking.
+ *
+ * Stripe sends the charge's running total in `amount_refunded`, not the delta,
+ * so a second partial refund arrives as the new total and this stays correct
+ * without adding anything up locally.
+ *
+ * Matched on the payment intent rather than the session: a refund belongs to a
+ * charge, and the session that created it may since have been superseded by a
+ * re-quote.
+ */
+async function recordRefund(charge: Record<string, unknown>): Promise<NextResponse> {
+  const paymentIntent =
+    typeof charge.payment_intent === "string" ? charge.payment_intent : null;
+  const refundedMinor =
+    typeof charge.amount_refunded === "number" ? charge.amount_refunded : 0;
+  // What was actually taken — a partly-captured charge refunds against the
+  // captured figure, not the authorised one.
+  const capturedMinor =
+    typeof charge.amount_captured === "number"
+      ? charge.amount_captured
+      : typeof charge.amount === "number"
+        ? charge.amount
+        : 0;
+
+  if (!paymentIntent || refundedMinor <= 0) {
+    console.error("Stripe charge.refunded without a payment intent or an amount");
+    // 200: a retry cannot supply what the payload never had.
+    return NextResponse.json({ received: true });
+  }
+
+  const refunded = (refundedMinor / 100).toFixed(2);
+  const whole = capturedMinor > 0 && refundedMinor >= capturedMinor;
+
+  try {
+    /**
+     * Conditional on the stored figure being smaller, so an out-of-order or
+     * redelivered webhook cannot walk a total backwards. Refunds only ever
+     * increase, which makes the comparison the whole idempotency check.
+     */
+    const applied = await db
+      .update(bookings)
+      .set({
+        amountRefunded: refunded,
+        refundedAt: new Date(),
+        // Partial refunds leave the booking `paid`: money did change hands and
+        // some of it stayed. Only a full refund undoes the payment.
+        ...(whole ? { paymentStatus: "refunded" as const } : {}),
+      })
+      .where(
+        and(
+          eq(bookings.stripePaymentIntentId, paymentIntent),
+          or(
+            isNull(bookings.amountRefunded),
+            lt(bookings.amountRefunded, sql`${refunded}`),
+          ),
+        ),
+      );
+
+    if (applied[0].affectedRows === 0) {
+      // Already recorded at this amount or higher, or the intent is not one of
+      // ours. Both are fine; neither is worth a retry.
+      console.info(`Stripe refund for ${paymentIntent} applied no change`);
+    }
+  } catch (error) {
+    console.error("Failed to record Stripe refund:", dbErrorMessage(error));
+    // 500 so Stripe retries — a refund the customer has been given must not
+    // stay invisible in our records.
+    return NextResponse.json({ error: "Could not record refund" }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });

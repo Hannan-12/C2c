@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { LegalList, LegalPage } from "@/components/legal-page";
 import { BRAND, BUSINESS, pageMetadata } from "@/lib/seo";
-import { FREE_CANCEL_HOURS, LATE_CANCEL_PERCENT } from "@/lib/service-terms";
+import {
+  FREE_CANCEL_HOURS,
+  LATE_CANCEL_PERCENT,
+  REFUND_BANK_DAYS_LABEL,
+  REFUND_REVIEW_DAYS_LABEL,
+} from "@/lib/service-terms";
 import { formatPhone } from "@/lib/format";
 
 export const metadata = pageMetadata({
@@ -159,7 +164,13 @@ export default function RefundsPage() {
               <LegalList
                 items={[
                   "Ask within 14 days of the trip where you can. We will still look at older requests, but details get harder to check.",
-                  "We reply within 2 business days, and aim to resolve within 7.",
+                  <>
+                    We reply within 2 business days. Refunds are
+                    <strong>not automatic</strong> — a person reads the request
+                    and decides it against this policy, which normally takes
+                    {REFUND_REVIEW_DAYS_LABEL} business days from the point we
+                    agree it.
+                  </>,
                   "If we disagree, we will tell you why in writing rather than stop replying.",
                 ]}
               />
@@ -172,11 +183,28 @@ export default function RefundsPage() {
             <>
               <LegalList
                 items={[
-                  "Card — refunded to the same card through Stripe. We issue it within 5 business days of agreeing it; your bank then takes a further 5 to 10 business days to show it. We cannot refund to a different card or to cash.",
-                  "Bank transfer — returned to the account it came from, within 5 business days of agreeing it.",
+                  <>
+                    <strong>Card</strong> — refunded to the same card through
+                    Stripe. We send it within {REFUND_REVIEW_DAYS_LABEL}{" "}
+                    business days of agreeing it; your bank then takes a further{" "}
+                    {REFUND_BANK_DAYS_LABEL} business days to show it. We cannot
+                    refund to a different card or in cash.
+                  </>,
+                  <>
+                    <strong>Bank transfer</strong> — returned to the account it
+                    came from, within {REFUND_REVIEW_DAYS_LABEL} business days of
+                    agreeing it.
+                  </>,
                   "Cash — there is nothing to return, because cash is paid after the trip. Where a cash trip went wrong we agree a credit against a future booking, or a transfer to your account.",
                 ]}
               />
+              <p>
+                Your tracking page shows the refund — the amount and the date we
+                sent it — as soon as it leaves us, so you can tell the difference
+                between a refund still with your bank and one we have not sent
+                yet. Nothing on that page changes by itself: a figure appears
+                there only because a person issued the refund.
+              </p>
               <p>
                 Refunds are made in AED, the currency you were charged in. If
                 your card is billed in another currency, your bank&apos;s

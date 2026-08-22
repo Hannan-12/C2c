@@ -43,6 +43,13 @@
       "when": 1786806744498,
       "tag": "0005_motionless_robin_chapel",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1787416445443,
+      "tag": "0006_curved_mister_sinister",
+      "breakpoints": true
     }
   ]
 }

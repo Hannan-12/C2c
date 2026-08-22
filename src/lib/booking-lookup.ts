@@ -37,6 +37,9 @@ export type PublicBooking = {
   paymentStatus: PaymentStatus;
   amountPaid: string | null;
   paidAt: Date | null;
+  /** What has come back, so the customer can see a refund without asking. */
+  amountRefunded: string | null;
+  refundedAt: Date | null;
   driver: { name: string; whatsapp: string; vehicle: string | null } | null;
 };
 
@@ -70,6 +73,8 @@ export async function getBookingByReference(
       paymentStatus: bookings.paymentStatus,
       amountPaid: bookings.amountPaid,
       paidAt: bookings.paidAt,
+      amountRefunded: bookings.amountRefunded,
+      refundedAt: bookings.refundedAt,
       driverName: drivers.name,
       driverWhatsapp: drivers.whatsappNumber,
       driverVehicle: drivers.vehicleAssigned,
@@ -105,6 +110,8 @@ export async function getBookingByReference(
     paymentStatus: row.paymentStatus,
     amountPaid: row.amountPaid,
     paidAt: row.paidAt,
+    amountRefunded: row.amountRefunded,
+    refundedAt: row.refundedAt,
     driver: driverVisible
       ? {
           name: row.driverName!,
