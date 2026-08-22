@@ -165,6 +165,19 @@ export const bookings = mysqlTable(
     amountPaid: decimal("amount_paid", { precision: 10, scale: 2 }),
     paidAt: datetime("paid_at"),
 
+    /**
+     * What has been given back, in AED, and when the last refund was issued.
+     *
+     * An amount rather than a flag, because a partial refund is the common
+     * case — a late cancellation returns half the fare, and a trip that went
+     * partly wrong returns part of it. `paymentStatus` only becomes `refunded`
+     * when the whole charge has come back; until then the booking is still
+     * paid, with some of it returned, and both figures have to be visible or
+     * the customer cannot tell which.
+     */
+    amountRefunded: decimal("amount_refunded", { precision: 10, scale: 2 }),
+    refundedAt: datetime("refunded_at"),
+
     createdAt: datetime("created_at")
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),

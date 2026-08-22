@@ -19,6 +19,10 @@ import {
 } from "@/lib/format";
 import { rateLimit } from "@/lib/rate-limit";
 import { PayButton } from "@/components/pay-button";
+import {
+  REFUND_BANK_DAYS_LABEL,
+  REFUND_REVIEW_DAYS_LABEL,
+} from "@/lib/service-terms";
 import { paymentsEnabled } from "@/lib/payments/stripe";
 
 /** Status changes as the admin works the booking, so never cache this. */
@@ -76,6 +80,33 @@ export default async function TrackingPage({
 
   const currentStep = timelineIndex(booking.status);
   const cancelled = booking.status === "cancelled";
+
+  /**
+   * Null unless money has actually gone back, so the panel below can lead with
+   * the refund whenever there is one — including on a cancelled booking, where
+   * the payment section used to be hidden entirely. A cancellation is the most
+   * common reason to be owed a refund, so hiding the money at exactly that
+   * moment was backwards.
+   */
+  const refundedAmount = booking.amountRefunded ? Number(booking.amountRefunded) : 0;
+  const refund =
+    refundedAmount > 0
+      ? {
+          amount: refundedAmount,
+          whole:
+            booking.paymentStatus === "refunded" ||
+            (booking.amountPaid !== null &&
+              refundedAmount >= Number(booking.amountPaid)),
+        }
+      : null;
+
+  /**
+   * Whether the customer's money is involved at all. A cancelled booking hides
+   * the payment panel — there is nothing left to pay — but not once they have
+   * paid: that is precisely when they are waiting to hear about a refund, and
+   * a blank space is what sends them to their bank instead of to us.
+   */
+  const moneyMoved = booking.paymentStatus === "paid" || refund !== null;
   const adminNumber = process.env.NEXT_PUBLIC_ADMIN_WHATSAPP ?? "";
 
   return (
@@ -232,13 +263,56 @@ export default async function TrackingPage({
         </div>
 
         <aside className="lg:sticky lg:top-6 flex flex-col gap-4">
-          {booking.paymentMethod === "card" && !cancelled && (
+          {booking.paymentMethod === "card" && (!cancelled || moneyMoved) && (
             <section className="animate-rise card">
               <h2 className="text-sm font-bold uppercase tracking-widest text-ink-faint mb-3">
                 Payment
               </h2>
 
-              {booking.paymentStatus === "paid" ? (
+              {refund !== null ? (
+                /*
+                 * A refund the customer can see. Someone who has been told
+                 * "you'll get it back" and then watches a page that still
+                 * says only "Paid" has no way to tell whether anything
+                 * happened — and that is the person who calls their bank.
+                 * The figure, the date we sent it, and when to expect it in
+                 * the account all belong here.
+                 */
+                <>
+                  <p className="flex items-baseline justify-between gap-3">
+                    <span className="font-semibold text-accent-strong">
+                      {refund.whole ? "Refunded" : "Partly refunded"}
+                    </span>
+                    <span className="font-mono font-semibold">
+                      {formatFare(refund.amount)}
+                    </span>
+                  </p>
+
+                  {!refund.whole && booking.amountPaid && (
+                    <p className="mt-1 flex items-baseline justify-between gap-3 text-xs text-ink-faint">
+                      <span>Of {formatFare(Number(booking.amountPaid))} paid</span>
+                      <span className="font-mono">
+                        {formatFare(Number(booking.amountPaid) - refund.amount)} kept
+                      </span>
+                    </p>
+                  )}
+
+                  {booking.refundedAt && (
+                    <p className="mt-3 text-xs text-ink-muted leading-relaxed">
+                      Sent to your card on{" "}
+                      {formatPickup(booking.refundedAt.toISOString())}. Your bank
+                      usually shows it within {REFUND_BANK_DAYS_LABEL} business
+                      days. It returns to the card you paid with — we cannot
+                      send it anywhere else.
+                    </p>
+                  )}
+
+                  <p className="mt-3 text-[11px] text-ink-faint">
+                    Not arrived? Message us with your reference code before
+                    contacting your bank — we can see exactly when it was sent.
+                  </p>
+                </>
+              ) : booking.paymentStatus === "paid" ? (
                 <>
                   <p className="flex items-baseline justify-between gap-3">
                     <span className="font-semibold text-green-700">Paid</span>
@@ -251,6 +325,18 @@ export default async function TrackingPage({
                   {booking.paidAt && (
                     <p className="mt-1 text-xs text-ink-faint">
                       Received {formatPickup(booking.paidAt.toISOString())}
+                    </p>
+                  )}
+                  {cancelled && (
+                    <p className="mt-3 text-xs text-ink-muted leading-relaxed">
+                      This booking is cancelled and you have paid. A person
+                      reviews every refund against our{" "}
+                      <Link href="/refunds" className="text-ink hover:text-accent-strong">
+                        refund policy
+                      </Link>{" "}
+                      — usually within {REFUND_REVIEW_DAYS_LABEL} business days,
+                      and it appears here once sent. Nothing is automatic, so
+                      message us if you have not heard.
                     </p>
                   )}
                 </>
