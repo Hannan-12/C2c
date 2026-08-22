@@ -20,8 +20,19 @@ export const BUSINESS = {
   openingHoursLabel: "any hour, any day",
   /** Digits only, international format — shared with the wa.me links. */
   whatsapp: process.env.NEXT_PUBLIC_ADMIN_WHATSAPP ?? "",
-  // TODO(client): supply legal entity name, trade licence number and registered
-  // address. Required before LocalBusiness JSON-LD is complete.
+  /**
+   * The registered entity behind the trading name.
+   *
+   * "Ride On Click" is a DBA. A card processor verifies the licence, sees a
+   * different name on the site, and cannot tell that the two are the same
+   * business — so this has to appear where a reviewer will find it, and it is
+   * also what a customer disputing a charge needs in order to recognise the
+   * descriptor on their statement.
+   */
+  legalEntity:
+    "Matta Prime Limo Passenger Transport Via Luxury Cars - Sole Proprietorship L.L.C.",
+  // TODO(client): supply the trade licence number and registered address. The
+  // entity name is set; those two would complete the LocalBusiness JSON-LD.
   /** Real mailbox on the verified domain — also the sender on booking email. */
   email: "info@rideonclick.com",
 } as const;

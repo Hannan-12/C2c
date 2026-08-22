@@ -114,7 +114,7 @@ export default function HomePage() {
           What we run
         </h2>
         <p className="text-ink-muted mb-7">
-          Four services, all confirmed the same way.
+          Three services, all confirmed the same way. Always a luxury car with a professional driver — never self-drive.
         </p>
 
         <ul className="border-t border-line">

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { whatsappLink } from "@/lib/format";
 import Image from "next/image";
-import { BRAND } from "@/lib/seo";
+import { BRAND, BUSINESS } from "@/lib/seo";
 import { PlaceInput } from "./place-input";
 import type { ServiceType } from "@/db/schema";
 
@@ -21,6 +21,7 @@ export const SECONDARY = [
   { href: "/about-us", label: "About" },
   { href: "/contact-us", label: "Contact" },
   { href: "/terms", label: "Terms" },
+  { href: "/refunds", label: "Refunds" },
   { href: "/privacy", label: "Privacy" },
 ];
 
@@ -249,8 +250,14 @@ export function BookingDock() {
           ))}
         </nav>
 
-        <p className="mt-4 text-[11px] text-ink-inverse/30">
+        {/*
+          The registered entity, not only the trading name. A customer
+          checking who they are about to pay, and a card processor matching
+          the site against a licence, both need the two names connected.
+        */}
+        <p className="mt-4 text-[11px] leading-relaxed text-ink-inverse/30">
           © {new Date().getFullYear()} {BRAND}
+          <span className="block mt-1">Operated by {BUSINESS.legalEntity}</span>
         </p>
       </div>
     </aside>

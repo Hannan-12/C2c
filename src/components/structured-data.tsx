@@ -22,10 +22,9 @@ function JsonLd({ data }: { data: object }) {
 /**
  * The organisation itself. Produces the business panel in search results.
  *
- * TODO(client): `legalName` and a postal address are still missing. Google
- * shows a richer panel with an address, but a made-up one is worse than none,
- * so the field is omitted rather than filled. `areaServed` carries the
- * coverage in the meantime.
+ * TODO(client): a postal address is still missing. Google shows a richer panel
+ * with one, but a made-up address is worse than none, so the field is omitted
+ * rather than filled. `areaServed` carries the coverage in the meantime.
  */
 export function LocalBusinessSchema() {
   return (
@@ -35,11 +34,15 @@ export function LocalBusinessSchema() {
         "@type": "LocalBusiness",
         "@id": `${siteUrl()}/#business`,
         name: BRAND,
+        // The trading name is what people search for; the registered entity is
+        // what matches the licence. Schema.org carries both, so neither has to
+        // be guessed from the other.
+        legalName: BUSINESS.legalEntity,
         url: siteUrl(),
         image: `${siteUrl()}/images/logo-badge.png`,
         logo: `${siteUrl()}/images/logo-badge.png`,
         description:
-          "Chauffeur rides, airport transfers, city tours and hourly hire across Dubai, Abu Dhabi and Sharjah. Every booking confirmed by a person.",
+          "Chauffeur rides, airport transfers, city tours and hourly hire across Dubai, Abu Dhabi and Sharjah — always a luxury car with a professional driver. Every booking confirmed by a person.",
         telephone: `+${BUSINESS.whatsapp}`,
         email: BUSINESS.email,
         priceRange: "$$",
