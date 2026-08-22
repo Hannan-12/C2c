@@ -53,6 +53,13 @@ export default function TermsPage() {
                 {BUSINESS.areasServed.join(", ")}.
               </p>
               <p>
+                {BRAND} is the trading name of{" "}
+                <strong>{BUSINESS.legalEntity}</strong>, licensed in the United
+                Arab Emirates for passenger transport by luxury car and for car
+                rental with a driver. That entity is the one you contract with,
+                and the name that may appear on your card statement.
+              </p>
+              <p>
                 By submitting a booking request you accept them. If something
                 here does not work for your trip, tell us before you book —
                 most of it can be agreed differently in writing.
@@ -95,6 +102,15 @@ export default function TermsPage() {
                   "It does change if you change the trip — a new destination, extra stops, or additional hours are re-quoted and agreed with you.",
                   "Tolls, parking and airport gate fees are included unless we tell you otherwise when confirming.",
                   "We accept cash, card and bank transfer. Payment is due on completion of the trip unless agreed otherwise in advance.",
+                  <>
+                    Card payments are taken through a secure link we send after
+                    confirming, and are handled by Stripe — we never see your
+                    full card number. How money comes back is set out in our{" "}
+                    <Link href="/refunds" className="text-ink-muted hover:text-accent-strong">
+                      refund policy
+                    </Link>
+                    .
+                  </>,
                 ]}
               />
               <p>
@@ -266,7 +282,12 @@ export default function TermsPage() {
               If something went wrong, message us on WhatsApp at{" "}
               {formatPhone(BUSINESS.whatsapp)} with your reference code. A
               person will read it and reply — we do not run a ticket queue. We
-              aim to resolve complaints within 7 days.
+              aim to resolve complaints within 7 days. If the complaint is
+              about money, our{" "}
+              <Link href="/refunds" className="text-ink-muted hover:text-accent-strong">
+                refund policy
+              </Link>{" "}
+              sets out what we refund and how long it takes.
             </p>
           ),
         },

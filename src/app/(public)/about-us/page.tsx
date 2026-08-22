@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BUSINESS, pageMetadata } from "@/lib/seo";
+import { BRAND, BUSINESS, pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
   title: "About Us",
@@ -110,6 +110,39 @@ export default function AboutPage() {
             </li>
           ))}
         </ul>
+      </section>
+
+      {/*
+        The registered entity, stated in prose as well as in the dock. Someone
+        checking who they are dealing with before paying looks at an About
+        page, and a licence issued to one name against a site trading under
+        another reads as a mismatch until the two are connected explicitly.
+      */}
+      <section className="reveal mt-20" aria-labelledby="entity-heading">
+        <h2 id="entity-heading" className="display text-2xl sm:text-3xl mb-3">
+          Who you are booking with
+        </h2>
+        <p className="text-ink-muted leading-relaxed max-w-2xl">
+          {BRAND} is the trading name of{" "}
+          <strong className="text-ink font-semibold">{BUSINESS.legalEntity}</strong>,
+          licensed in the United Arab Emirates for passenger transport by
+          luxury car and for car rental with a driver. That is the name on our
+          licence, on your invoice, and on your card statement.
+        </p>
+        <p className="text-ink-muted leading-relaxed max-w-2xl mt-3">
+          Reach us on WhatsApp or at{" "}
+          <a
+            href={`mailto:${BUSINESS.email}`}
+            className="text-ink hover:text-accent-strong transition-colors"
+          >
+            {BUSINESS.email}
+          </a>
+          . Our <Link href="/terms" className="text-ink hover:text-accent-strong transition-colors">terms</Link>{" "}
+          and{" "}
+          <Link href="/refunds" className="text-ink hover:text-accent-strong transition-colors">refund policy</Link>{" "}
+          set out what happens when a trip changes or a payment needs to come
+          back.
+        </p>
       </section>
 
       <section className="reveal mt-20 mb-6">

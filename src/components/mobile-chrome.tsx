@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { whatsappLink } from "@/lib/format";
-import { BRAND } from "@/lib/seo";
+import { BRAND, BUSINESS } from "@/lib/seo";
 
 /**
  * Mobile navigation, replacing the dock below `lg`.
@@ -154,8 +154,9 @@ export function MobileChrome({
               ))}
             </ul>
 
-            <p className="mt-auto pt-8 text-[11px] text-ink-inverse/30">
+            <p className="mt-auto pt-8 text-[11px] leading-relaxed text-ink-inverse/30">
               © {new Date().getFullYear()} {BRAND}
+              <span className="block mt-1">Operated by {BUSINESS.legalEntity}</span>
             </p>
           </nav>
         </div>
