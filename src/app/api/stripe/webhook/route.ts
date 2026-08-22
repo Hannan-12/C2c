@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { bookings } from "@/db/schema";
 import { verifyWebhookSignature } from "@/lib/payments/stripe";
 import { dbErrorMessage } from "@/lib/db-error";
+import { notifyRefundIssued } from "@/lib/email/notify";
 
 /**
  * Stripe payment webhook.
@@ -177,6 +178,33 @@ async function recordRefund(charge: Record<string, unknown>): Promise<NextRespon
       // Already recorded at this amount or higher, or the intent is not one of
       // ours. Both are fine; neither is worth a retry.
       console.info(`Stripe refund for ${paymentIntent} applied no change`);
+      return NextResponse.json({ received: true });
+    }
+
+    /**
+     * Tell the customer, because nothing else will. The tracking page shows
+     * the refund, but only to someone who thinks to go and look — and the days
+     * between us sending and their bank showing it are exactly when a person
+     * decides they have been ignored and calls their card issuer.
+     *
+     * Gated on the update having matched, which is the same condition that
+     * makes the record idempotent: a redelivery never reaches this line, and a
+     * genuine second partial refund correctly sends again with the new figure.
+     *
+     * Best-effort and never throws, so a mail outage cannot make Stripe retry
+     * a refund we have already recorded correctly.
+     */
+    const [booking] = await db
+      .select({ id: bookings.id })
+      .from(bookings)
+      .where(eq(bookings.stripePaymentIntentId, paymentIntent))
+      .limit(1);
+
+    if (booking) {
+      await notifyRefundIssued(booking.id, {
+        amountRefunded: refundedMinor / 100,
+        whole,
+      });
     }
   } catch (error) {
     console.error("Failed to record Stripe refund:", dbErrorMessage(error));

@@ -2,7 +2,13 @@ import { eq, isNull, and } from "drizzle-orm";
 import { db } from "@/db";
 import { bookings } from "@/db/schema";
 import { sendEmail } from "./client";
-import { bookingConfirmed, bookingRequestReceived, type BookingEmailData } from "./templates";
+import {
+  bookingConfirmed,
+  bookingRequestReceived,
+  refundIssued,
+  type BookingEmailData,
+} from "./templates";
+import { REFUND_BANK_DAYS_LABEL } from "@/lib/service-terms";
 
 /**
  * Booking notifications (docs Section 3).
@@ -129,5 +135,45 @@ export async function notifyBookingConfirmed(
       `Failed to send confirmation email for booking ${booking.referenceCode}:`,
       error,
     );
+  }
+}
+
+/**
+ * "Refund sent" — dispatched when a refund is recorded from Stripe.
+ *
+ * No send-once guard here, deliberately. The caller only reaches this after a
+ * conditional UPDATE that matched, and that update only matches when the
+ * refunded total actually increased — so a redelivered webhook never gets
+ * this far, and a genuine second partial refund correctly emails again with
+ * the new figure.
+ */
+export async function notifyRefundIssued(
+  bookingId: string,
+  refund: { amountRefunded: number; whole: boolean },
+): Promise<void> {
+  try {
+    const [booking] = await db
+      .select()
+      .from(bookings)
+      .where(eq(bookings.id, bookingId))
+      .limit(1);
+
+    if (!booking) return;
+
+    const email = recipient(booking);
+    if (!email) return;
+
+    await sendEmail(
+      refundIssued(toEmailData(booking, email), {
+        amountRefunded: refund.amountRefunded,
+        amountPaid: num(booking.amountPaid),
+        whole: refund.whole,
+        bankDaysLabel: REFUND_BANK_DAYS_LABEL,
+      }),
+    );
+  } catch (error) {
+    // Best-effort like the rest of this module: the refund itself has already
+    // been recorded, and the tracking page shows it whether or not this sent.
+    console.error(`Failed to send refund email for booking ${bookingId}:`, error);
   }
 }

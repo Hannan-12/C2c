@@ -99,6 +99,12 @@ function layout(opts: {
   footer: string;
   /** Stripe Checkout URL. Set only for confirmed card bookings. */
   payUrl?: string;
+  /**
+   * A figure that is the point of the email, shown above the trip details.
+   * A refund's amount is the first thing the reader is looking for, and
+   * finding it in the ordinary label/value list would bury it.
+   */
+  highlight?: { label: string; value: string; note?: string };
 }): string {
   // The site's field labels: tiny, uppercase, wide tracking, faint ink.
   const rows = detailRows(opts.booking)
@@ -112,6 +118,19 @@ function layout(opts: {
     .join("");
 
   const link = trackingUrl(opts.booking.referenceCode);
+
+  const highlight = opts.highlight
+    ? `
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+            <tr>
+              <td style="background:#1c1a19;border-radius:9px;padding:18px 20px;">
+                <p style="margin:0 0 4px;color:#9c948c;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;">${esc(opts.highlight.label)}</p>
+                <p style="margin:0;color:#eba43c;font-size:26px;font-weight:700;letter-spacing:-0.01em;font-family:${MONO_FONT};">${esc(opts.highlight.value)}</p>
+                ${opts.highlight.note ? `<p style="margin:8px 0 0;color:#c9c2b9;font-size:13px;line-height:1.55;">${esc(opts.highlight.note)}</p>` : ""}
+              </td>
+            </tr>
+          </table>`
+    : "";
 
   /**
    * Card bookings get a second, primary button. Pay leads and tracking becomes
@@ -165,6 +184,8 @@ function layout(opts: {
             </tr>
           </table>
 
+          ${highlight}
+
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
             ${rows}
           </table>
@@ -201,6 +222,7 @@ function plain(opts: {
   payUrl?: string;
   booking: BookingEmailData;
   footer: string;
+  highlight?: { label: string; value: string; note?: string };
 }): string {
   const rows = detailRows(opts.booking)
     .map(([label, value]) => `${label}: ${value}`)
@@ -216,6 +238,13 @@ function plain(opts: {
     `Reference: ${opts.booking.referenceCode}`,
     rows,
     "",
+    ...(opts.highlight
+      ? [
+          `${opts.highlight.label}: ${opts.highlight.value}`,
+          ...(opts.highlight.note ? [opts.highlight.note] : []),
+          "",
+        ]
+      : []),
     ...(opts.payUrl ? [`Pay for this booking: ${opts.payUrl}`, ""] : []),
     `Track your booking: ${trackingUrl(opts.booking.referenceCode)}`,
     "",
@@ -261,5 +290,57 @@ export function bookingConfirmed(
     subject: `Booking confirmed — ${booking.referenceCode}`,
     html: layout({ heading, intro, booking, ctaLabel: "View your booking", footer, payUrl }),
     text: plain({ heading, intro, booking, footer, payUrl }),
+  };
+}
+
+/**
+ * Sent when a refund leaves us — the only message that closes the loop on
+ * money going back.
+ *
+ * Without it a refund is silent: the tracking page updates, but nobody is told
+ * to go and look. The days between us sending and the bank showing it are
+ * exactly when a customer decides they have been ignored and calls their card
+ * issuer, so the email leads with the amount and then says plainly that the
+ * delay from here is the bank's.
+ */
+export function refundIssued(
+  booking: BookingEmailData,
+  refund: {
+    /** Running total returned, in AED — not the delta of this refund. */
+    amountRefunded: number;
+    /** What was charged, where we know it. Shown only on a partial refund. */
+    amountPaid: number | null;
+    /** Whether the whole charge has now come back. */
+    whole: boolean;
+    /** How long the customer's bank takes to show it, e.g. "5–10". */
+    bankDaysLabel: string;
+  },
+): EmailMessage {
+  const heading = refund.whole ? "Your refund is on its way" : "Part of your fare is on its way back";
+
+  const kept =
+    !refund.whole && refund.amountPaid != null
+      ? ` ${formatFare(refund.amountPaid - refund.amountRefunded)} of the ${formatFare(refund.amountPaid)} you paid stays with us, as set out in our refund policy.`
+      : "";
+
+  const intro =
+    `${booking.customerName}, we have sent ${formatFare(refund.amountRefunded)} back to the card you paid with.` +
+    kept +
+    ` It is with your bank now — they usually show it within ${refund.bankDaysLabel} business days.`;
+
+  const footer =
+    "A refund can only go back to the card it came from. If it has not appeared after that time, reply to this email or message us on WhatsApp with your reference before contacting your bank — we can see exactly when it was sent.";
+
+  const highlight = {
+    label: refund.whole ? "Refunded to your card" : "Partly refunded to your card",
+    value: formatFare(refund.amountRefunded),
+    note: `Allow ${refund.bankDaysLabel} business days for your bank to show it.`,
+  };
+
+  return {
+    to: booking.customerEmail,
+    subject: `Refund sent — ${booking.referenceCode}`,
+    html: layout({ heading, intro, booking, ctaLabel: "View your booking", footer, highlight }),
+    text: plain({ heading, intro, booking, footer, highlight }),
   };
 }
