@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { and, eq, ne, or, isNull, lt, sql } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { bookings } from "@/db/schema";
 import { verifyWebhookSignature } from "@/lib/payments/stripe";
 import { dbErrorMessage } from "@/lib/db-error";
-import { notifyRefundIssued } from "@/lib/email/notify";
+import { recordRefund } from "@/lib/payments/record-refund";
 
 /**
  * Stripe payment webhook.
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
   // Every other event type is acknowledged and ignored, so enabling extra
   // events in the Stripe dashboard never produces retry storms here.
   if (event.type === "charge.refunded") {
-    return recordRefund(event.data?.object ?? {});
+    return recordRefundEvent(event.data?.object ?? {});
   }
 
   if (event.type !== "checkout.session.completed") {
@@ -116,17 +116,14 @@ export async function POST(req: Request) {
 }
 
 /**
- * A refund issued in the Stripe dashboard, mirrored onto the booking.
+ * A refund, mirrored onto the booking.
  *
- * Stripe sends the charge's running total in `amount_refunded`, not the delta,
- * so a second partial refund arrives as the new total and this stays correct
- * without adding anything up locally.
- *
- * Matched on the payment intent rather than the session: a refund belongs to a
- * charge, and the session that created it may since have been superseded by a
- * re-quote.
+ * Fires whether the refund was issued from our admin or straight from the
+ * Stripe dashboard — the dashboard stays available, and a refund made there
+ * has to reach the customer's tracking page just the same. The shared recorder
+ * makes the two paths converge, and makes the second one to arrive a no-op.
  */
-async function recordRefund(charge: Record<string, unknown>): Promise<NextResponse> {
+async function recordRefundEvent(charge: Record<string, unknown>): Promise<NextResponse> {
   const paymentIntent =
     typeof charge.payment_intent === "string" ? charge.payment_intent : null;
   const refundedMinor =
@@ -146,65 +143,17 @@ async function recordRefund(charge: Record<string, unknown>): Promise<NextRespon
     return NextResponse.json({ received: true });
   }
 
-  const refunded = (refundedMinor / 100).toFixed(2);
-  const whole = capturedMinor > 0 && refundedMinor >= capturedMinor;
-
   try {
-    /**
-     * Conditional on the stored figure being smaller, so an out-of-order or
-     * redelivered webhook cannot walk a total backwards. Refunds only ever
-     * increase, which makes the comparison the whole idempotency check.
-     */
-    const applied = await db
-      .update(bookings)
-      .set({
-        amountRefunded: refunded,
-        refundedAt: new Date(),
-        // Partial refunds leave the booking `paid`: money did change hands and
-        // some of it stayed. Only a full refund undoes the payment.
-        ...(whole ? { paymentStatus: "refunded" as const } : {}),
-      })
-      .where(
-        and(
-          eq(bookings.stripePaymentIntentId, paymentIntent),
-          or(
-            isNull(bookings.amountRefunded),
-            lt(bookings.amountRefunded, sql`${refunded}`),
-          ),
-        ),
-      );
+    const { applied } = await recordRefund({
+      paymentIntentId: paymentIntent,
+      refundedAed: refundedMinor / 100,
+      capturedAed: capturedMinor / 100,
+    });
 
-    if (applied[0].affectedRows === 0) {
-      // Already recorded at this amount or higher, or the intent is not one of
-      // ours. Both are fine; neither is worth a retry.
+    if (!applied) {
+      // Already recorded at this amount or higher — by an earlier delivery, or
+      // by the admin action that issued it. Neither is worth a retry.
       console.info(`Stripe refund for ${paymentIntent} applied no change`);
-      return NextResponse.json({ received: true });
-    }
-
-    /**
-     * Tell the customer, because nothing else will. The tracking page shows
-     * the refund, but only to someone who thinks to go and look — and the days
-     * between us sending and their bank showing it are exactly when a person
-     * decides they have been ignored and calls their card issuer.
-     *
-     * Gated on the update having matched, which is the same condition that
-     * makes the record idempotent: a redelivery never reaches this line, and a
-     * genuine second partial refund correctly sends again with the new figure.
-     *
-     * Best-effort and never throws, so a mail outage cannot make Stripe retry
-     * a refund we have already recorded correctly.
-     */
-    const [booking] = await db
-      .select({ id: bookings.id })
-      .from(bookings)
-      .where(eq(bookings.stripePaymentIntentId, paymentIntent))
-      .limit(1);
-
-    if (booking) {
-      await notifyRefundIssued(booking.id, {
-        amountRefunded: refundedMinor / 100,
-        whole,
-      });
     }
   } catch (error) {
     console.error("Failed to record Stripe refund:", dbErrorMessage(error));
