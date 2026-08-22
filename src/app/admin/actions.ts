@@ -10,6 +10,8 @@ import { bookings, bookingAssignments, drivers, BOOKING_STATUSES } from "@/db/sc
 import { requireAdmin } from "@/lib/admin-session";
 import { notifyBookingConfirmed } from "@/lib/email/notify";
 import { ensurePaymentLink } from "@/lib/payments/checkout";
+import { createRefund } from "@/lib/payments/stripe";
+import { recordRefund } from "@/lib/payments/record-refund";
 import { SESSION_COOKIE } from "@/lib/session";
 import type { BookingStatus } from "@/lib/booking-status";
 
@@ -159,4 +161,79 @@ export async function toggleDriverActive(formData: FormData) {
   await db.update(drivers).set({ active }).where(eq(drivers.id, driverId));
 
   revalidatePath("/admin/drivers");
+}
+
+/**
+ * Refunds a card payment, in full or in part.
+ *
+ * Deliberately the one destructive money action in the admin, so it is
+ * validated harder than the rest. It moves someone else's money, it cannot be
+ * undone from here, and the operator is often working from a WhatsApp message
+ * rather than a form — so every constraint the refund policy implies is
+ * checked server-side rather than trusted from the input.
+ *
+ * The write and the customer email are not done here: recordRefund owns both,
+ * shared with the Stripe webhook. A refund issued from the Stripe dashboard
+ * has to reach the same state, and whichever of the two arrives second must be
+ * a no-op rather than a second email.
+ */
+export async function refundBooking(formData: FormData) {
+  await requireAdmin();
+
+  const bookingId = String(formData.get("bookingId") ?? "");
+  if (!bookingId) throw new Error("Invalid refund request");
+
+  const [booking] = await db
+    .select()
+    .from(bookings)
+    .where(eq(bookings.id, bookingId))
+    .limit(1);
+
+  if (!booking) throw new Error("Booking not found");
+  if (!booking.stripePaymentIntentId) {
+    throw new Error("This booking has no card payment to refund");
+  }
+  if (booking.paymentStatus !== "paid") {
+    throw new Error("Only a paid booking can be refunded");
+  }
+
+  const paid = Number(booking.amountPaid ?? 0);
+  const already = Number(booking.amountRefunded ?? 0);
+  const outstanding = Math.round((paid - already) * 100) / 100;
+
+  if (!(outstanding > 0)) throw new Error("This booking is already fully refunded");
+
+  /**
+   * Blank means the rest of it. The common case is a full refund, and making
+   * the operator retype a figure they can already see is how the wrong number
+   * gets typed.
+   */
+  const requested = String(formData.get("amount") ?? "").trim();
+  const amountAed = requested === "" ? outstanding : Number(requested);
+
+  if (!Number.isFinite(amountAed) || amountAed <= 0) {
+    throw new Error("Enter a refund amount greater than zero");
+  }
+  if (amountAed > outstanding) {
+    throw new Error(
+      `Cannot refund more than the ${outstanding.toFixed(2)} AED still outstanding`,
+    );
+  }
+
+  const refund = await createRefund({
+    paymentIntentId: booking.stripePaymentIntentId,
+    // Omitted when it is the whole remainder, so Stripe computes the figure
+    // and a rounding disagreement cannot leave a fil behind.
+    amountAed: amountAed === outstanding ? undefined : amountAed,
+    referenceCode: booking.referenceCode,
+  });
+
+  await recordRefund({
+    paymentIntentId: booking.stripePaymentIntentId,
+    refundedAed: refund.chargeRefundedAed,
+    capturedAed: refund.chargeAmountAed,
+  });
+
+  revalidatePath("/admin");
+  revalidatePath(`/admin/bookings/${bookingId}`);
 }

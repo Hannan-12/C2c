@@ -20,7 +20,7 @@ import {
   whatsappLink,
 } from "@/lib/format";
 import { StatusPill } from "../../page";
-import { assignDriver, unassignDriver, updateBookingStatus } from "../../actions";
+import { assignDriver, refundBooking, unassignDriver, updateBookingStatus } from "../../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -89,6 +89,16 @@ export default async function BookingDetailPage({
 
   // Prefilled so the operator never retypes trip details into WhatsApp
   // (docs Section 8).
+  /**
+   * What is still refundable. Computed here so the form can offer it as the
+   * default and cap the input — the server checks it again, since a max
+   * attribute is a hint to the browser and nothing more.
+   */
+  const outstanding =
+    Math.round(
+      (Number(booking.amountPaid ?? 0) - Number(booking.amountRefunded ?? 0)) * 100,
+    ) / 100;
+
   const customerMessage = `Hi ${booking.customerName}, this is ${BRAND} about your booking ${booking.referenceCode} — ${route} on ${formatPickup(booking.pickupDatetime)}. Track it here: ${trackingUrl}`;
   const driverMessage = `Job ${booking.referenceCode}\nPickup: ${booking.pickupLocation}\n${booking.dropoffLocation ? `Dropoff: ${booking.dropoffLocation}\n` : ""}When: ${formatPickup(booking.pickupDatetime)}\nVehicle: ${VEHICLE_LABEL[booking.vehicleCategory]}\nPassengers: ${booking.passengerCount}, bags: ${booking.luggageCount}`;
 
@@ -175,12 +185,21 @@ export default async function BookingDetailPage({
                 label="Received at"
                 value={booking.paidAt ? formatPickup(booking.paidAt) : undefined}
               />
+              {/*
+                Says "None yet" rather than disappearing, once money has been
+                taken. A blank row on a paid booking is ambiguous — an operator
+                cannot tell whether no refund was issued or one was issued and
+                failed to record — and that ambiguity is worst on a cancelled
+                booking, where a refund is probably owed.
+              */}
               <Detail
                 label="Refunded"
                 value={
                   booking.amountRefunded
                     ? formatFare(Number(booking.amountRefunded))
-                    : undefined
+                    : booking.paymentStatus === "paid"
+                      ? "None yet"
+                      : undefined
                 }
               />
               <Detail
@@ -198,17 +217,53 @@ export default async function BookingDetailPage({
             </dl>
 
             {/*
-              Refunds are issued in the Stripe dashboard, not here. Said out
-              loud because an operator looking at a cancelled paid booking
-              needs to know there is no button coming — and because the figures
-              above only appear once Stripe tells us, so an empty "Refunded"
-              row means the refund has not been sent, not that it failed.
+              The refund form. Amount left blank means the rest of it, because
+              a full refund is the common case and retyping a figure already on
+              screen is how the wrong figure gets typed.
+
+              No confirmation step: the operator is normally acting on a
+              customer message they are already looking at, and an extra click
+              on every refund would train them to click through it. The
+              protection is the server — it re-reads the booking, refuses more
+              than is outstanding, and sends an idempotency key so a
+              double-submit cannot pay twice.
             */}
-            {booking.paymentStatus === "paid" && booking.stripePaymentIntentId && (
+            {booking.paymentStatus === "paid" &&
+              booking.stripePaymentIntentId &&
+              outstanding > 0 && (
+                <form action={refundBooking} className="mt-5 pt-5 border-t border-line">
+                  <input type="hidden" name="bookingId" value={booking.id} />
+                  <label htmlFor="refund-amount" className="field-label">
+                    Refund amount — leave blank for the full{" "}
+                    {formatFare(outstanding)} outstanding
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <input
+                      id="refund-amount"
+                      name="amount"
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      max={outstanding}
+                      inputMode="decimal"
+                      placeholder={outstanding.toFixed(2)}
+                      className="field-input w-40"
+                    />
+                    <button type="submit" className="btn-secondary">
+                      Refund to card
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs text-ink-faint">
+                    Goes back to the card that paid, through Stripe. The
+                    customer is emailed and their tracking page updates.
+                  </p>
+                </form>
+              )}
+
+            {booking.paymentStatus === "refunded" && (
               <p className="mt-4 text-sm text-ink-muted">
-                Refund from the Stripe dashboard, searching the reference above.
-                It appears here, and on the customer's tracking page, within a
-                minute of being issued.
+                Fully refunded. Anything further has to be handled in the Stripe
+                dashboard.
               </p>
             )}
 

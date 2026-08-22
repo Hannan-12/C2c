@@ -41,6 +41,12 @@ export function paymentsEnabled(): boolean {
 async function stripeRequest(
   path: string,
   body: Record<string, string>,
+  /**
+   * Stripe replays the original response for a repeated key rather than
+   * performing the action twice. Set it wherever repeating the call would
+   * move money — a refund, above all.
+   */
+  idempotencyKey?: string,
 ): Promise<Record<string, unknown>> {
   const key = secretKey();
   if (!key) throw new StripeError("STRIPE_SECRET_KEY is not configured");
@@ -50,6 +56,7 @@ async function stripeRequest(
     headers: {
       Authorization: `Bearer ${key}`,
       "Content-Type": "application/x-www-form-urlencoded",
+      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
     },
     body: new URLSearchParams(body),
   });
@@ -165,4 +172,69 @@ export function verifyWebhookSignature(
   if (a.length !== b.length) return false;
 
   return timingSafeEqual(a, b);
+}
+
+export type StripeRefund = {
+  id: string;
+  /** Running total refunded on the charge, in AED. */
+  chargeRefundedAed: number;
+  /** What was captured on the charge, in AED. */
+  chargeAmountAed: number;
+};
+
+/**
+ * Refunds a payment, in full or in part.
+ *
+ * Takes the payment intent rather than the charge: it is the id we already
+ * store, and Stripe resolves it to the charge itself. `expand[]=charge` is
+ * asked for so the response carries the charge's running totals — otherwise
+ * deciding whether this refund completed the charge would need a second call.
+ *
+ * Idempotency-Key is set from our own booking reference plus the amount, so a
+ * double-submitted form returns the first refund instead of issuing a second.
+ * Stripe honours it for 24 hours, which is far longer than the window in which
+ * a double-click or a retried request could happen.
+ */
+export async function createRefund(opts: {
+  paymentIntentId: string;
+  /** Omit to refund everything still outstanding on the charge. */
+  amountAed?: number;
+  /** Ours, for the idempotency key and Stripe's own record. */
+  referenceCode: string;
+}): Promise<StripeRefund> {
+  const body: Record<string, string> = {
+    payment_intent: opts.paymentIntentId,
+    "expand[]": "charge",
+    "metadata[reference_code]": opts.referenceCode,
+  };
+
+  if (opts.amountAed !== undefined) {
+    const amountMinor = Math.round(opts.amountAed * AED_MINOR_UNITS);
+    if (!Number.isFinite(amountMinor) || amountMinor <= 0) {
+      throw new StripeError(`Refusing to refund a non-positive amount: ${opts.amountAed}`);
+    }
+    body.amount = String(amountMinor);
+  }
+
+  const key = `refund:${opts.referenceCode}:${body.amount ?? "full"}`;
+  const refund = await stripeRequest("/refunds", body, key);
+
+  const charge = refund.charge as Record<string, unknown> | undefined;
+  const refundedMinor = typeof charge?.amount_refunded === "number" ? charge.amount_refunded : null;
+  const capturedMinor =
+    typeof charge?.amount_captured === "number"
+      ? charge.amount_captured
+      : typeof charge?.amount === "number"
+        ? charge.amount
+        : null;
+
+  if (typeof refund.id !== "string" || refundedMinor === null || capturedMinor === null) {
+    throw new StripeError("Stripe returned a refund without its charge totals");
+  }
+
+  return {
+    id: refund.id,
+    chargeRefundedAed: refundedMinor / AED_MINOR_UNITS,
+    chargeAmountAed: capturedMinor / AED_MINOR_UNITS,
+  };
 }
