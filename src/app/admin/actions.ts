@@ -6,7 +6,14 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { bookings, bookingAssignments, drivers, BOOKING_STATUSES } from "@/db/schema";
+import {
+  bookings,
+  bookingAssignments,
+  drivers,
+  vehiclePricing,
+  BOOKING_STATUSES,
+  VEHICLE_CATEGORIES,
+} from "@/db/schema";
 import { requireAdmin } from "@/lib/admin-session";
 import { notifyBookingConfirmed } from "@/lib/email/notify";
 import { ensurePaymentLink } from "@/lib/payments/checkout";
@@ -306,4 +313,75 @@ export async function updateFare(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath(`/admin/bookings/${bookingId}`);
   revalidatePath(`/track/${booking.referenceCode}`);
+}
+
+/**
+ * Saves every vehicle's rates in one go.
+ *
+ * All five classes together rather than a save button per row. Rates are set
+ * relative to each other — Business above Comfort, VIP above both — and saving
+ * them one at a time means the site briefly quotes a price list nobody
+ * intended. One submit, one transaction, one consistent state.
+ *
+ * This is what makes the client self-sufficient: until it existed, changing a
+ * fare meant a developer with phpMyAdmin.
+ */
+export async function updatePricing(formData: FormData) {
+  await requireAdmin();
+
+  const FIELDS = ["baseFare", "perKm", "perMin", "minimumFare", "hourlyRate"] as const;
+
+  const updates = VEHICLE_CATEGORIES.map((category) => {
+    const rates = {} as Record<(typeof FIELDS)[number], string>;
+
+    for (const field of FIELDS) {
+      const raw = String(formData.get(`${category}.${field}`) ?? "").trim();
+      const value = Number(raw);
+
+      if (raw === "" || !Number.isFinite(value) || value < 0) {
+        throw new Error(`${category}: enter a number of zero or more for every rate`);
+      }
+      // A slipped decimal point, not a real price. The most expensive tier's
+      // hourly rate is nowhere near this.
+      if (value > 100000) throw new Error(`${category}: ${raw} looks like a typing mistake`);
+
+      rates[field] = value.toFixed(2);
+    }
+
+    /**
+     * A minimum below the base fare can never bind — the fare starts at the
+     * base and only goes up — so it is almost always a transposition. Caught
+     * here rather than silently stored, since the symptom would be a floor
+     * that quietly does nothing.
+     */
+    if (Number(rates.minimumFare) < Number(rates.baseFare)) {
+      throw new Error(
+        `${category}: the minimum fare is below the base fare, so it would never apply`,
+      );
+    }
+
+    return { category, rates };
+  });
+
+  /**
+   * One transaction, so a rate that fails validation cannot leave the price
+   * list half-updated. Nothing here should fail after the loop above, which is
+   * exactly why the guarantee is worth having — the failure would be the
+   * unexpected kind.
+   */
+  await db.transaction(async (tx) => {
+    for (const { category, rates } of updates) {
+      await tx.update(vehiclePricing).set(rates).where(eq(vehiclePricing.category, category));
+    }
+  });
+
+  /**
+   * The public pages cache pricing for an hour. Revalidating means the client
+   * sees their change on the site immediately rather than wondering whether it
+   * saved, which is the difference between a screen they trust and one they
+   * check twice.
+   */
+  revalidatePath("/");
+  revalidatePath("/rides");
+  revalidatePath("/admin/pricing");
 }

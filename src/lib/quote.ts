@@ -38,8 +38,12 @@ type PricingRow = typeof vehiclePricing.$inferSelect;
  * Extracted so the single-category and all-category paths cannot drift: a
  * change to how a fare is computed has to land in both, and the surest way to
  * make that true is for there to be only one of them.
+ *
+ * Exported for the pricing screen's worked example, which has to price a
+ * sample trip using the real rule rather than an approximation of it — a
+ * preview that computes fares differently from the quote is worse than none.
  */
-function fareFor(
+export function fareFor(
   pricing: PricingRow,
   opts: { route: RouteLeg | null; durationHours?: number | null },
 ): number {
