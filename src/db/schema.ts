@@ -310,6 +310,17 @@ export const bookingAssignments = mysqlTable(
       .default(sql`CURRENT_TIMESTAMP`),
     /** Free-text admin note, e.g. "confirmed via WhatsApp at 3:40pm". */
     notes: text("notes"),
+
+    /**
+     * When this trip's money was squared up with the driver, and for how much.
+     *
+     * The amount is frozen at settlement rather than recomputed on the fly. A
+     * fare corrected or a refund issued afterwards would otherwise silently
+     * change a figure that has already been handed over in cash, and the
+     * driver would be right to say the books had been rewritten behind them.
+     */
+    payoutSettledAt: datetime("payout_settled_at"),
+    payoutAmount: decimal("payout_amount", { precision: 10, scale: 2 }),
   },
   (t) => [
     index("assignments_booking_idx").on(t.bookingId),

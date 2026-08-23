@@ -64,6 +64,13 @@
       "when": 1787490571561,
       "tag": "0008_lumpy_butterfly",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1787499836120,
+      "tag": "0009_brief_spot",
+      "breakpoints": true
     }
   ]
 }

@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import {
   bookings,
@@ -18,6 +18,7 @@ import {
   type CancellationReason,
 } from "@/db/schema";
 import { CANCELLATION_REASON_LABEL } from "@/lib/booking-status";
+import { splitFare } from "@/lib/commission";
 import { requireAdmin } from "@/lib/admin-session";
 import { notifyBookingConfirmed } from "@/lib/email/notify";
 import { ensurePaymentLink } from "@/lib/payments/checkout";
@@ -492,4 +493,80 @@ export async function addBookingNote(formData: FormData) {
   await writeNote(bookingId, admin.email, body);
 
   revalidatePath(`/admin/bookings/${bookingId}`);
+}
+
+/**
+ * Squares up every unsettled completed trip for one driver.
+ *
+ * The amount is written onto each assignment as it stands right now, rather
+ * than recomputed whenever the page is opened. Money handed over in cash
+ * cannot be un-handed, so a fare corrected or a refund issued afterwards must
+ * not quietly rewrite what was agreed — the settled figure is a record of what
+ * happened, not a live calculation.
+ */
+export async function settleDriverPayout(formData: FormData) {
+  const admin = await requireAdmin();
+
+  const driverId = String(formData.get("driverId") ?? "");
+  if (!driverId) throw new Error("Driver is required");
+
+  const rows = await db
+    .select({
+      assignmentId: bookingAssignments.id,
+      bookingId: bookings.id,
+      referenceCode: bookings.referenceCode,
+      status: bookings.status,
+      paymentMethod: bookings.paymentMethod,
+      fareEstimate: bookings.fareEstimate,
+      agreedFare: bookings.agreedFare,
+      amountPaid: bookings.amountPaid,
+      amountRefunded: bookings.amountRefunded,
+    })
+    .from(bookingAssignments)
+    .innerJoin(bookings, eq(bookings.id, bookingAssignments.bookingId))
+    .where(
+      and(
+        eq(bookingAssignments.driverId, driverId),
+        eq(bookings.status, "completed"),
+        isNull(bookingAssignments.payoutSettledAt),
+      ),
+    );
+
+  if (rows.length === 0) throw new Error("Nothing outstanding for this driver");
+
+  const settledAt = new Date();
+  let balance = 0;
+
+  await db.transaction(async (tx) => {
+    for (const row of rows) {
+      const split = splitFare(row);
+      balance += split.balance;
+
+      await tx
+        .update(bookingAssignments)
+        .set({ payoutSettledAt: settledAt, payoutAmount: split.balance.toFixed(2) })
+        .where(eq(bookingAssignments.id, row.assignmentId));
+    }
+  });
+
+  /**
+   * Recorded on the bookings themselves, not only as a total. Six months on,
+   * the question is never "what was the payout run" but "was this trip paid",
+   * and the answer has to be findable from the trip.
+   */
+  const rounded = Math.round(balance * 100) / 100;
+  const direction =
+    rounded >= 0
+      ? `Paid driver ${rounded.toFixed(2)} AED`
+      : `Collected ${Math.abs(rounded).toFixed(2)} AED commission from driver`;
+
+  for (const row of rows) {
+    await writeNote(
+      row.bookingId,
+      admin.email,
+      `${direction} — settled across ${rows.length} ${rows.length === 1 ? "trip" : "trips"}.`,
+    );
+  }
+
+  revalidatePath("/admin/finance");
 }
