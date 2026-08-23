@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { and, count, desc, eq, gte, inArray, lt } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, like, lt, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { bookings, BOOKING_STATUSES, SERVICE_TYPES } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin-session";
+import { isValidReferenceCode, normaliseReferenceCode } from "@/lib/reference-code";
+import { phoneSuffix } from "@/lib/search";
+import { redirect } from "next/navigation";
 import { STATUS_LABEL, SERVICE_LABEL, type BookingStatus } from "@/lib/booking-status";
 import { formatFare, formatPickup } from "@/lib/format";
 import { payableFare } from "@/lib/fare";
@@ -41,6 +44,26 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
   const from = typeof params.from === "string" ? params.from : "";
   const to = typeof params.to === "string" ? params.to : "";
   const page = Math.max(1, Number(params.page ?? 1) || 1);
+  const q = typeof params.q === "string" ? params.q.trim() : "";
+
+  /**
+   * A complete reference opens its booking rather than returning a list of
+   * one. Pasting a code out of WhatsApp is the single most common thing done
+   * here, and an extra click on a result you already identified is friction
+   * with nothing to show for it.
+   */
+  if (q) {
+    const code = normaliseReferenceCode(q);
+    if (isValidReferenceCode(code)) {
+      const [exact] = await db
+        .select({ id: bookings.id })
+        .from(bookings)
+        .where(eq(bookings.referenceCode, code))
+        .limit(1);
+
+      if (exact) redirect(`/admin/bookings/${exact.id}`);
+    }
+  }
 
   const filters = [];
   if (BOOKING_STATUSES.includes(status as never)) {
@@ -55,6 +78,29 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
     const end = new Date(`${to}T00:00:00`);
     end.setDate(end.getDate() + 1);
     filters.push(lt(bookings.pickupDatetime, end));
+  }
+
+  if (q) {
+    /**
+     * Reference, name and phone in one box. Anything else — a pickup address,
+     * a flight number — is a different search with different ergonomics, and
+     * widening this one would make the common case slower without making the
+     * rare one good.
+     *
+     * Leading-wildcard LIKE cannot use an index. At this table's size that is
+     * irrelevant; if the booking count ever makes it matter, the fix is a
+     * fulltext index rather than a narrower search.
+     */
+    const term = `%${q}%`;
+    const suffix = phoneSuffix(q);
+
+    const matches = [
+      like(bookings.referenceCode, `%${q.toUpperCase()}%`),
+      like(bookings.customerName, term),
+      ...(suffix ? [like(bookings.customerWhatsapp, `%${suffix}`)] : []),
+    ];
+
+    filters.push(or(...matches)!);
   }
 
   const where = filters.length ? and(...filters) : undefined;
@@ -130,6 +176,20 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
       </div>
 
       <form className="card mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5 items-end">
+        <div className="sm:col-span-2 xl:col-span-5">
+          <label className="field-label" htmlFor="q">
+            Search by reference, name or number
+          </label>
+          <input
+            id="q"
+            name="q"
+            type="search"
+            defaultValue={q}
+            placeholder="C2C-7K4M2XQP · Aisha · 058 965 5634"
+            className="field-input"
+          />
+        </div>
+
         <div>
           <label className="field-label" htmlFor="status">
             Status
@@ -197,7 +257,9 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
 
       {rows.length === 0 ? (
         <div className="card text-center py-12">
-          <p className="font-semibold mb-1">No bookings match</p>
+          <p className="font-semibold mb-1">
+            {q ? `Nothing matches “${q}”` : "No bookings match"}
+          </p>
           <p className="text-sm text-ink-muted">
             {filtered
               ? "Try widening the filters."
