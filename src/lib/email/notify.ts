@@ -6,6 +6,7 @@ import { fareWasAgreed, payableFare } from "@/lib/fare";
 import {
   bookingConfirmed,
   bookingRequestReceived,
+  paymentReceived,
   refundIssued,
   type BookingEmailData,
 } from "./templates";
@@ -181,5 +182,34 @@ export async function notifyRefundIssued(
     // Best-effort like the rest of this module: the refund itself has already
     // been recorded, and the tracking page shows it whether or not this sent.
     console.error(`Failed to send refund email for booking ${bookingId}:`, error);
+  }
+}
+
+/**
+ * "Payment received" — sent when Stripe confirms a card payment.
+ *
+ * Best-effort, and gated by the caller on the conditional update that records
+ * the payment, so a redelivered webhook cannot send a second receipt for the
+ * same money.
+ */
+export async function notifyPaymentReceived(
+  bookingId: string,
+  payment: { amount: number; reference: string | null },
+): Promise<void> {
+  try {
+    const [booking] = await db
+      .select()
+      .from(bookings)
+      .where(eq(bookings.id, bookingId))
+      .limit(1);
+
+    if (!booking) return;
+
+    const email = recipient(booking);
+    if (!email) return;
+
+    await sendEmail(paymentReceived(toEmailData(booking, email), payment));
+  } catch (error) {
+    console.error(`Failed to send payment receipt for booking ${bookingId}:`, error);
   }
 }

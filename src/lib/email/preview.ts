@@ -10,7 +10,12 @@
  */
 import { writeFileSync } from "fs";
 import { tmpdir } from "os";
-import { bookingConfirmed, bookingRequestReceived, refundIssued } from "./templates";
+import {
+  bookingConfirmed,
+  bookingRequestReceived,
+  paymentReceived,
+  refundIssued,
+} from "./templates";
 import { REFUND_BANK_DAYS_LABEL } from "@/lib/service-terms";
 
 // Defaults to a temp directory rather than the repo, so previewing never
@@ -41,6 +46,10 @@ for (const [name, message] of [
   ],
   // Both refund shapes: the partial one has to show what was kept as well as
   // what came back, and that arithmetic is the part worth looking at.
+  [
+    "payment-received",
+    paymentReceived(sample, { amount: 185, reference: "pi_3QxAmpLeReFeReNcE" }),
+  ],
   [
     "refund-full",
     refundIssued(sample, {

@@ -5,6 +5,7 @@ import { bookings } from "@/db/schema";
 import { verifyWebhookSignature } from "@/lib/payments/stripe";
 import { dbErrorMessage } from "@/lib/db-error";
 import { recordRefund } from "@/lib/payments/record-refund";
+import { notifyPaymentReceived } from "@/lib/email/notify";
 
 /**
  * Stripe payment webhook.
@@ -104,6 +105,20 @@ export async function POST(req: Request) {
     if (claimed[0].affectedRows === 0) {
       // Already recorded, or the session is not the current one. Both are fine.
       console.info(`Stripe webhook for ${bookingId} applied no change (session ${sessionId})`);
+    } else {
+      /**
+       * The receipt. Card is taken at booking now, before anyone has checked
+       * availability, so this is the first thing a customer gets after paying
+       * and the only written record of the amount. Silence after a payment is
+       * where "did that go through?" becomes a call to their bank.
+       *
+       * Inside the branch that actually recorded the money, so a redelivered
+       * webhook cannot send a second receipt.
+       */
+      await notifyPaymentReceived(bookingId, {
+        amount: amountMinor === null ? 0 : amountMinor / 100,
+        reference: paymentIntent,
+      });
     }
   } catch (error) {
     console.error("Failed to record Stripe payment:", dbErrorMessage(error));

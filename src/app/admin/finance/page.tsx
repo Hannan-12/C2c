@@ -4,7 +4,7 @@ import { and, eq, gte, isNull, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { bookings, bookingAssignments, drivers } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin-session";
-import { formatFare, formatPickup } from "@/lib/format";
+import { formatFare, whatsappLink } from "@/lib/format";
 import {
   COMMISSION_PERCENT,
   DRIVER_PERCENT,
@@ -258,18 +258,51 @@ export default async function FinancePage({ searchParams }: PageProps<"/admin/fi
                     )}
                   </p>
 
-                  {/*
-                    Settling freezes each trip's figure as it stands now. A fare
-                    corrected later must not reopen a payment already handed
-                    over in cash.
-                  */}
-                  <form action={settleDriverPayout}>
-                    <input type="hidden" name="driverId" value={driverId} />
-                    <input type="hidden" name="period" value={period} />
-                    <button type="submit" className="btn-secondary">
-                      Mark settled
-                    </button>
-                  </form>
+                  <div className="flex flex-wrap gap-2">
+                    {/*
+                      The figure has to be sent to the driver somehow, and it
+                      is always WhatsApp. Pre-writing it means the number in
+                      the message is the number on the screen, rather than one
+                      retyped at the end of a long day.
+                    */}
+                    <a
+                      href={whatsappLink(
+                        d.whatsapp,
+                        d.outstanding >= 0
+                          ? `Hi ${d.name}, your payout for ${d.unsettledTrips} ${
+                              d.unsettledTrips === 1 ? "trip" : "trips"
+                            }: ${formatFare(d.outstanding)}. Fares totalled ${formatFare(
+                              d.driverShare + d.companyShare,
+                            )}, less ${COMMISSION_PERCENT}% commission.`
+                          : `Hi ${d.name}, ${formatFare(
+                              Math.abs(d.outstanding),
+                            )} commission is due on ${d.unsettledTrips} cash ${
+                              d.unsettledTrips === 1 ? "trip" : "trips"
+                            } you collected. Fares totalled ${formatFare(
+                              d.driverShare + d.companyShare,
+                            )}.`,
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-field bg-whatsapp px-3.5 py-2 text-sm font-semibold
+                                 text-white hover:brightness-95 transition"
+                    >
+                      Send the figures
+                    </a>
+
+                    {/*
+                      Settling freezes each trip's figure as it stands now. A
+                      fare corrected later must not reopen a payment already
+                      handed over in cash.
+                    */}
+                    <form action={settleDriverPayout}>
+                      <input type="hidden" name="driverId" value={driverId} />
+                      <input type="hidden" name="period" value={period} />
+                      <button type="submit" className="btn-secondary">
+                        Mark settled
+                      </button>
+                    </form>
+                  </div>
                 </div>
               )}
             </section>

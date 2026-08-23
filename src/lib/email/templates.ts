@@ -352,3 +352,43 @@ export function refundIssued(
     text: plain({ heading, intro, booking, footer, highlight }),
   };
 }
+
+/**
+ * Sent the moment a card payment clears.
+ *
+ * Card is now taken at booking, before anyone has checked availability — so
+ * this is the first thing the customer receives after handing over money, and
+ * the only written proof of what they paid. Without it a payment produces
+ * silence, which is where "did that go through?" turns into a bank call.
+ *
+ * It deliberately does not say the trip is confirmed, because it is not. A
+ * person still checks, and the email says what happens if we cannot cover it.
+ */
+export function paymentReceived(
+  booking: BookingEmailData,
+  payment: { amount: number; reference: string | null },
+): EmailMessage {
+  const heading = "Payment received";
+
+  const intro =
+    `Thanks ${booking.customerName} — we have your payment of ${formatFare(payment.amount)}. ` +
+    `A person is checking availability for this trip now and will confirm on WhatsApp shortly. ` +
+    `If we cannot cover it, you are refunded in full.`;
+
+  const footer =
+    "Keep this as your receipt. Paid by card through Stripe — we never see your card number. " +
+    "Need to change or cancel? Message us on WhatsApp with your reference.";
+
+  const highlight = {
+    label: "Paid",
+    value: formatFare(payment.amount),
+    note: payment.reference ? `Payment reference ${payment.reference}` : undefined,
+  };
+
+  return {
+    to: booking.customerEmail,
+    subject: `Payment received — ${booking.referenceCode}`,
+    html: layout({ heading, intro, booking, ctaLabel: "Track your booking", footer, highlight }),
+    text: plain({ heading, intro, booking, footer, highlight }),
+  };
+}
