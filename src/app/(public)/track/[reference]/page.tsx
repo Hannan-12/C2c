@@ -363,9 +363,6 @@ export default async function TrackingPage({
                         </span>
                       </p>
                       <PayButton reference={booking.referenceCode} />
-                      <p className="mt-2 text-[11px] text-ink-faint">
-                        Handled by Stripe. We never see your card details.
-                      </p>
                     </>
                   )}
                 </>
