@@ -17,7 +17,7 @@ import {
   VEHICLE_CATEGORIES,
   type CancellationReason,
 } from "@/db/schema";
-import { CANCELLATION_REASON_LABEL } from "@/lib/booking-status";
+import { CANCELLATION_REASON_LABEL, CONFIRMED_STATUSES } from "@/lib/booking-status";
 import { splitFare } from "@/lib/commission";
 import { requireAdmin } from "@/lib/admin-session";
 import { notifyBookingConfirmed } from "@/lib/email/notify";
@@ -32,18 +32,6 @@ import type { BookingStatus } from "@/lib/booking-status";
  * server action is its own POST endpoint — it is reachable without ever
  * rendering the page that contains it.
  */
-
-/**
- * Statuses that mean the booking is agreed with the customer. An admin can
- * jump straight from "requested" to "assigned" without passing through
- * "confirmed", so the confirmation email keys off the whole set, not one value.
- */
-const CONFIRMED_STATUSES: BookingStatus[] = [
-  "confirmed",
-  "assigned",
-  "en_route",
-  "completed",
-];
 
 export async function signOut() {
   (await cookies()).delete(SESSION_COOKIE);
@@ -569,4 +557,92 @@ export async function settleDriverPayout(formData: FormData) {
   }
 
   revalidatePath("/admin/finance");
+}
+
+/**
+ * Sends the confirmation email again, payment link included.
+ *
+ * notifyBookingConfirmed sends once and guards on confirmationEmailSentAt, so
+ * that two admins acting at the same moment cannot both send. That guard is
+ * right, and it also means a bounced email, a customer who deleted it, or —
+ * as happened here — one sent before Stripe was configured and therefore
+ * carrying no payment link, could never be replaced without editing the
+ * database by hand. Clearing the stamp deliberately is the difference between
+ * a guard and a trap.
+ */
+export async function resendConfirmation(formData: FormData) {
+  const admin = await requireAdmin();
+
+  const bookingId = String(formData.get("bookingId") ?? "");
+  if (!bookingId) throw new Error("Invalid request");
+
+  const [booking] = await db
+    .select()
+    .from(bookings)
+    .where(eq(bookings.id, bookingId))
+    .limit(1);
+
+  if (!booking) throw new Error("Booking not found");
+  if (!booking.customerEmail) {
+    throw new Error("This booking has no email address. Add one first, or message the customer on WhatsApp.");
+  }
+  if (!CONFIRMED_STATUSES.includes(booking.status)) {
+    throw new Error("Confirm the booking before sending a confirmation for it");
+  }
+
+  await db
+    .update(bookings)
+    .set({ confirmationEmailSentAt: null })
+    .where(eq(bookings.id, bookingId));
+
+  // Before the email, so the link it carries is current — the whole reason a
+  // resend is usually being asked for.
+  const payUrl = await ensurePaymentLink(bookingId);
+  await notifyBookingConfirmed(bookingId, payUrl ?? undefined);
+
+  await writeNote(
+    bookingId,
+    admin.email,
+    `Confirmation resent to ${booking.customerEmail}${payUrl ? " with a payment link" : ""}.`,
+  );
+
+  revalidatePath(`/admin/bookings/${bookingId}`);
+}
+
+/**
+ * Corrects the address a booking's email goes to.
+ *
+ * A mistyped address is the commonest reason a confirmation never arrives, and
+ * until now the only fix was SQL. Recorded as a note because changing where a
+ * customer's booking details are sent is worth being able to explain.
+ */
+export async function updateCustomerEmail(formData: FormData) {
+  const admin = await requireAdmin();
+
+  const bookingId = String(formData.get("bookingId") ?? "");
+  const email = String(formData.get("customerEmail") ?? "").trim().toLowerCase();
+
+  if (!bookingId) throw new Error("Invalid request");
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    throw new Error("Enter a valid email address");
+  }
+
+  const [booking] = await db
+    .select({ id: bookings.id, customerEmail: bookings.customerEmail })
+    .from(bookings)
+    .where(eq(bookings.id, bookingId))
+    .limit(1);
+
+  if (!booking) throw new Error("Booking not found");
+  if (booking.customerEmail === email) return;
+
+  await db.update(bookings).set({ customerEmail: email }).where(eq(bookings.id, bookingId));
+
+  await writeNote(
+    bookingId,
+    admin.email,
+    `Email changed to ${email}${booking.customerEmail ? ` (was ${booking.customerEmail})` : ""}.`,
+  );
+
+  revalidatePath(`/admin/bookings/${bookingId}`);
 }

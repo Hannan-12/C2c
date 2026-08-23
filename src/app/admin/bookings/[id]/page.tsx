@@ -15,6 +15,7 @@ import { fareWasAgreed, payableFare } from "@/lib/fare";
 import { BRAND } from "@/lib/seo";
 import {
   CANCELLATION_REASON_LABEL,
+  CONFIRMED_STATUSES,
   SERVICE_LABEL,
   STATUS_LABEL,
   VEHICLE_LABEL,
@@ -31,6 +32,8 @@ import { StatusPill } from "../../page";
 import {
   addBookingNote,
   assignDriver,
+  resendConfirmation,
+  updateCustomerEmail,
   refundBooking,
   unassignDriver,
   updateBookingStatus,
@@ -489,6 +492,58 @@ export default async function BookingDetailPage({
             >
               Message customer on WhatsApp
             </a>
+
+            {/*
+              A mistyped address is the commonest reason a confirmation never
+              arrives, and until this existed the only fix was SQL.
+            */}
+            <form
+              action={updateCustomerEmail}
+              className="mt-5 pt-5 border-t border-line"
+            >
+              <input type="hidden" name="bookingId" value={booking.id} />
+              <label htmlFor="customerEmail" className="field-label">
+                {booking.customerEmail ? "Correct the email" : "Add an email"}
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <input
+                  id="customerEmail"
+                  name="customerEmail"
+                  type="email"
+                  required
+                  defaultValue={booking.customerEmail ?? ""}
+                  placeholder="them@example.com"
+                  className="field-input flex-1 min-w-52"
+                />
+                <button type="submit" className="btn-secondary">
+                  Save
+                </button>
+              </div>
+            </form>
+
+            {/*
+              The confirmation sends once, guarded so two admins cannot both
+              send it. That guard becomes a trap when the one email that went
+              out bounced, or predates the payment link — hence a deliberate
+              way to send it again.
+            */}
+            {CONFIRMED_STATUSES.includes(booking.status) && booking.customerEmail && (
+              <form action={resendConfirmation} className="mt-4">
+                <input type="hidden" name="bookingId" value={booking.id} />
+                <button type="submit" className="btn-secondary">
+                  Resend confirmation
+                  {booking.paymentMethod === "card" && booking.paymentStatus !== "paid"
+                    ? " and payment link"
+                    : ""}
+                </button>
+                <p className="mt-1.5 text-xs text-ink-faint">
+                  {booking.confirmationEmailSentAt
+                    ? `Last sent ${formatPickup(booking.confirmationEmailSentAt)}.`
+                    : "Not sent yet."}{" "}
+                  Goes to {booking.customerEmail}.
+                </p>
+              </form>
+            )}
           </section>
 
           <section className="card">

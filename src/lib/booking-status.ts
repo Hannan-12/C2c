@@ -92,3 +92,17 @@ export const CANCELLATION_REASON_LABEL: Record<CancellationReason, string> = {
   duplicate: "Duplicate or test booking",
   other: "Something else",
 };
+
+/**
+ * Statuses that mean the booking is agreed with the customer.
+ *
+ * An admin can jump straight from "requested" to "assigned" without passing
+ * through "confirmed", so anything keyed on "we have said yes" has to test the
+ * whole set rather than one value.
+ */
+export const CONFIRMED_STATUSES: BookingStatus[] = [
+  "confirmed",
+  "assigned",
+  "en_route",
+  "completed",
+];
