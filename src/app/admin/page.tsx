@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { and, count, desc, eq, gte, inArray, like, lt, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, gt, gte, inArray, like, lt, or, sum } from "drizzle-orm";
 import { db } from "@/db";
-import { bookings, BOOKING_STATUSES, SERVICE_TYPES } from "@/db/schema";
+import {
+  bookings,
+  BOOKING_STATUSES,
+  SERVICE_TYPES,
+  type PaymentMethod,
+  type PaymentStatus,
+} from "@/db/schema";
 import { requireAdmin } from "@/lib/admin-session";
 import { isValidReferenceCode, normaliseReferenceCode } from "@/lib/reference-code";
 import { phoneSuffix } from "@/lib/search";
@@ -19,6 +25,22 @@ export const metadata: Metadata = {
 };
 
 const PAGE_SIZE = 25;
+
+/**
+ * Payment states as an operator thinks about them, which is not how they are
+ * stored. `not_required` means cash — not a problem, just a different way of
+ * being settled — and a partial refund leaves a booking `paid` with money
+ * returned, so "refunded" has to look at the amount rather than the status.
+ */
+const PAYMENT_FILTERS = ["paid", "unpaid", "refunded", "cash"] as const;
+type PaymentFilter = (typeof PAYMENT_FILTERS)[number];
+
+const PAYMENT_FILTER_LABEL: Record<PaymentFilter, string> = {
+  paid: "Paid",
+  unpaid: "Awaiting payment",
+  refunded: "Refunded",
+  cash: "Cash on the day",
+};
 
 /** Statuses that still need the operator to do something. */
 const OPEN_STATUSES: BookingStatus[] = [
@@ -45,6 +67,7 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
   const to = typeof params.to === "string" ? params.to : "";
   const page = Math.max(1, Number(params.page ?? 1) || 1);
   const q = typeof params.q === "string" ? params.q.trim() : "";
+  const payment = typeof params.payment === "string" ? params.payment : "";
 
   /**
    * A complete reference opens its booking rather than returning a list of
@@ -78,6 +101,26 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
     const end = new Date(`${to}T00:00:00`);
     end.setDate(end.getDate() + 1);
     filters.push(lt(bookings.pickupDatetime, end));
+  }
+
+  if (PAYMENT_FILTERS.includes(payment as never)) {
+    const clause: Record<PaymentFilter, ReturnType<typeof and>> = {
+      paid: eq(bookings.paymentStatus, "paid"),
+      // Owes money and has not paid it. A cash booking owes nothing in
+      // advance, so it does not belong here however unpaid it looks.
+      unpaid: and(
+        eq(bookings.paymentMethod, "card"),
+        inArray(bookings.paymentStatus, ["pending", "not_required"]),
+      ),
+      // Status alone would miss a partial refund, which stays `paid`.
+      refunded: or(
+        eq(bookings.paymentStatus, "refunded"),
+        gt(bookings.amountRefunded, "0"),
+      ),
+      cash: eq(bookings.paymentMethod, "cash"),
+    };
+
+    filters.push(clause[payment as PaymentFilter]!);
   }
 
   if (q) {
@@ -123,6 +166,10 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
           status: bookings.status,
           fareEstimate: bookings.fareEstimate,
           agreedFare: bookings.agreedFare,
+          paymentMethod: bookings.paymentMethod,
+          paymentStatus: bookings.paymentStatus,
+          amountPaid: bookings.amountPaid,
+          amountRefunded: bookings.amountRefunded,
         })
         .from(bookings)
         .where(where)
@@ -156,6 +203,24 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
         ),
     ]);
 
+  /**
+   * Totals across the filter, not the page. The date filters only become
+   * useful for "what did we take this week" if the figure covers the whole
+   * result rather than the twenty-five rows currently visible.
+   *
+   * Net of refunds, because gross takings that ignore money given back are a
+   * number nobody can act on.
+   */
+  const [totals] = await db
+    .select({
+      paid: sum(bookings.amountPaid),
+      refunded: sum(bookings.amountRefunded),
+    })
+    .from(bookings)
+    .where(where);
+
+  const taken = Number(totals?.paid ?? 0) - Number(totals?.refunded ?? 0);
+
   const [{ openCount }] = await db
     .select({ openCount: count() })
     .from(bookings)
@@ -175,8 +240,8 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
         <Stat label="Completed this week" value={weekCount} />
       </div>
 
-      <form className="card mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5 items-end">
-        <div className="sm:col-span-2 xl:col-span-5">
+      <form className="card mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6 items-end">
+        <div className="sm:col-span-2 xl:col-span-6">
           <label className="field-label" htmlFor="q">
             Search by reference, name or number
           </label>
@@ -224,6 +289,25 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
         </div>
 
         <div>
+          <label className="field-label" htmlFor="payment">
+            Payment
+          </label>
+          <select
+            id="payment"
+            name="payment"
+            defaultValue={payment}
+            className="field-input"
+          >
+            <option value="">Any payment state</option>
+            {PAYMENT_FILTERS.map((f) => (
+              <option key={f} value={f}>
+                {PAYMENT_FILTER_LABEL[f]}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
           <label className="field-label" htmlFor="from">
             Pickup from
           </label>
@@ -255,6 +339,31 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
         </div>
       </form>
 
+      {/*
+        Tied to the filter above rather than shown as a headline stat: it is
+        the answer to "what did this selection take", and detached from the
+        selection it would read as an all-time total and be wrong.
+      */}
+      {rows.length > 0 && taken !== 0 && (
+        <p className="mb-4 text-sm text-ink-muted">
+          <span className="tnum font-mono font-semibold text-ink">
+            {formatFare(taken)}
+          </span>{" "}
+          taken across {total} {total === 1 ? "booking" : "bookings"}
+          {filtered ? " matching these filters" : ""}
+          {Number(totals?.refunded ?? 0) > 0 && (
+            <>
+              , after{" "}
+              <span className="tnum font-mono">
+                {formatFare(Number(totals?.refunded ?? 0))}
+              </span>{" "}
+              refunded
+            </>
+          )}
+          .
+        </p>
+      )}
+
       {rows.length === 0 ? (
         <div className="card text-center py-12">
           <p className="font-semibold mb-1">
@@ -277,6 +386,7 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
                 <th scope="col" className="text-left font-medium px-4 py-3">Route</th>
                 <th scope="col" className="text-left font-medium px-4 py-3">Pickup</th>
                 <th scope="col" className="text-right font-medium px-4 py-3">Fare</th>
+                <th scope="col" className="text-left font-medium px-4 py-3">Payment</th>
                 <th scope="col" className="text-left font-medium px-5 py-3">Status</th>
               </tr>
             </thead>
@@ -309,6 +419,9 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
                   </td>
                   <td className="tnum px-4 py-3.5 text-right font-mono whitespace-nowrap">
                     {payableFare(row) !== null ? formatFare(payableFare(row)!) : "—"}
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <PaymentPill booking={row} />
                   </td>
                   <td className="px-5 py-3.5">
                     <StatusPill status={row.status} />
@@ -351,6 +464,59 @@ function Stat({
       <p className="tnum text-2xl font-bold">{value}</p>
       <p className="text-sm text-ink-muted mt-0.5">{label}</p>
     </div>
+  );
+}
+
+
+/**
+ * Where a booking's money has got to.
+ *
+ * Carries a glyph as well as a colour, because "paid" and "awaiting payment"
+ * are the two an operator scans for and red-green is exactly the pair a
+ * colour-blind reader cannot separate. The glyph is decorative — the text
+ * beside it already says which state it is.
+ *
+ * Cash is deliberately quiet. It is not a problem to be chased, just a booking
+ * that settles with the driver, and giving it the same weight as an unpaid
+ * card would make a full list of ordinary bookings look like a list of debts.
+ */
+function PaymentPill({
+  booking,
+}: {
+  booking: {
+    paymentMethod: PaymentMethod;
+    paymentStatus: PaymentStatus;
+    amountPaid: string | null;
+    amountRefunded: string | null;
+  };
+}) {
+  const refunded = Number(booking.amountRefunded ?? 0);
+
+  // A partial refund stays `paid` with money returned, so the amount decides
+  // this, not the status.
+  const [label, glyph, tone] =
+    refunded > 0
+      ? booking.paymentStatus === "refunded"
+        ? (["Refunded", "\u21A9", "bg-accent-soft text-accent-strong border-accent"] as const)
+        : (["Part refunded", "\u21A9", "bg-accent-soft text-accent-strong border-accent"] as const)
+      : booking.paymentStatus === "paid"
+        ? (["Paid", "\u2713", "bg-green-50 text-green-800 border-green-200"] as const)
+        : booking.paymentMethod === "cash"
+          ? (["Cash", "\u25CB", "bg-field text-ink-muted border-line"] as const)
+          : (["Awaiting", "\u2022", "bg-red-50 text-red-700 border-red-200"] as const);
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap ${tone}`}
+    >
+      <span aria-hidden>{glyph}</span>
+      {label}
+      {booking.paymentStatus === "paid" && booking.amountPaid && refunded === 0 && (
+        <span className="tnum font-mono font-normal opacity-70">
+          {formatFare(Number(booking.amountPaid))}
+        </span>
+      )}
+    </span>
   );
 }
 
