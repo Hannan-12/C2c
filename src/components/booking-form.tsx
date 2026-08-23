@@ -13,6 +13,8 @@ import type { PaymentMethod, ServiceType, VehicleCategory } from "@/db/schema";
 import type { AllCategoriesQuote } from "@/lib/quote";
 import { VEHICLE_SPECS, smallestFitting, vehicleSpec } from "@/lib/vehicles";
 import { PlaceInput } from "./place-input";
+import { PhoneInput } from "./phone-input";
+import { defaultPickup, todayLocal } from "@/lib/pickup";
 
 type Tab = { id: ServiceType; label: string };
 
@@ -72,8 +74,8 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
   );
   const [pickupLocation, setPickupLocation] = useState(params.get("pickup") ?? "");
   const [dropoffLocation, setDropoffLocation] = useState(params.get("dropoff") ?? "");
-  const [pickupDate, setPickupDate] = useState(params.get("date") ?? "");
-  const [pickupTime, setPickupTime] = useState(params.get("time") ?? "");
+  const [pickupDate, setPickupDate] = useState(params.get("date") ?? defaultPickup().date);
+  const [pickupTime, setPickupTime] = useState(params.get("time") ?? defaultPickup().time);
   const [durationHours, setDurationHours] = useState(params.get("duration") ?? "2");
   const [flightNumber, setFlightNumber] = useState("");
   const [vehicleCategory, setVehicleCategory] = useState<VehicleCategory>(
@@ -124,7 +126,13 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
 
   const detailsComplete =
     customerName.trim().length > 0 &&
-    customerWhatsapp.trim().length > 0 &&
+    // Long enough to be a real number rather than a country code alone: the
+    // shortest national number in the list is eight digits.
+    customerWhatsapp.trim().length >= 10 &&
+    // Required now, not optional. A booking with no email cannot be sent a
+    // receipt, a refund confirmation, or the reference the customer needs to
+    // track it — and card payment makes a receipt the customer's only record.
+    /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(customerEmail.trim()) &&
     !overCapacity;
 
   /**
@@ -276,7 +284,7 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
           luggageCount: Number(luggageCount),
           customerName,
           customerWhatsapp,
-          customerEmail: customerEmail || undefined,
+          customerEmail,
           paymentMethod,
         }),
       });
@@ -413,7 +421,7 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
               type="date"
               value={pickupDate}
               onChange={(e) => setPickupDate(e.target.value)}
-              min={new Date().toISOString().slice(0, 10)}
+              min={todayLocal()}
               className="field-input"
               required
             />
@@ -665,29 +673,40 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
             required
           />
 
-          <Field
-            label="WhatsApp Number"
-            id="customerWhatsapp"
-            value={customerWhatsapp}
-            onChange={setCustomerWhatsapp}
-            placeholder="+971 5X XXX XXXX"
-            error={fieldErrors.customerWhatsapp}
-            required
-          />
+          <div>
+            <label className="field-label" htmlFor="customerWhatsapp">
+              WhatsApp Number <span aria-hidden className="text-accent-strong">*</span>
+            </label>
+            <PhoneInput
+              id="customerWhatsapp"
+              value={customerWhatsapp}
+              onChange={setCustomerWhatsapp}
+              invalid={Boolean(fieldErrors.customerWhatsapp)}
+              describedBy={
+                fieldErrors.customerWhatsapp ? "customerWhatsapp-error" : undefined
+              }
+            />
+            {fieldErrors.customerWhatsapp && (
+              <FieldError id="customerWhatsapp-error">
+                {fieldErrors.customerWhatsapp}
+              </FieldError>
+            )}
+          </div>
 
           <div className="sm:col-span-2">
             <Field
-              label="Email (optional)"
+              label="Email"
               id="customerEmail"
               type="email"
               value={customerEmail}
               onChange={setCustomerEmail}
               placeholder="you@example.com"
               error={fieldErrors.customerEmail}
+              required
             />
             <p className="mt-1.5 text-xs text-ink-faint">
-              We&apos;ll send your booking reference here. Without it, we&apos;ll
-              confirm over WhatsApp only.
+              Your booking reference, receipt and any refund confirmation go
+              here. We use it for your booking, nothing else.
             </p>
           </div>
         </div>

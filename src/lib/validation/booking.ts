@@ -46,7 +46,16 @@ export const createBookingSchema = z
 
     customerName: z.string().min(1).max(200),
     customerWhatsapp: whatsappSchema,
-    customerEmail: z.email().max(320).optional(),
+    /**
+     * Required. It was optional while cash was the only way to pay and
+     * WhatsApp carried everything — but a card customer is owed a receipt and,
+     * if it comes to it, a refund confirmation, and neither can be sent to a
+     * phone number. The column stays nullable for the bookings taken before
+     * this changed.
+     */
+    customerEmail: z
+      .email({ error: "Enter an email address we can send your booking to" })
+      .max(320),
 
     // Defaults to cash so an older client, or a request made before card
     // payment existed, keeps the original behaviour rather than failing.

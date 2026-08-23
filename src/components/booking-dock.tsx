@@ -7,6 +7,7 @@ import { whatsappLink } from "@/lib/format";
 import Image from "next/image";
 import { BRAND, BUSINESS } from "@/lib/seo";
 import { PlaceInput } from "./place-input";
+import { defaultPickup, todayLocal } from "@/lib/pickup";
 import type { ServiceType } from "@/db/schema";
 
 export const NAV = [
@@ -47,8 +48,11 @@ export function BookingDock() {
   const [serviceType, setServiceType] = useState<ServiceType>("ride");
   const [pickup, setPickup] = useState("");
   const [dropoff, setDropoff] = useState("");
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [time, setTime] = useState("10:00");
+  // Shared with the full booking form, so the quick form does not hand over a
+  // date the page it opens would reject. The old default paired today's date
+  // with a fixed 10:00, which is in the past for anyone booking after ten.
+  const [date, setDate] = useState(() => defaultPickup().date);
+  const [time, setTime] = useState(() => defaultPickup().time);
 
   const isHourly = serviceType === "hourly";
   const adminNumber = process.env.NEXT_PUBLIC_ADMIN_WHATSAPP ?? "";
@@ -174,7 +178,7 @@ export function BookingDock() {
                   id="dock-date"
                   type="date"
                   value={date}
-                  min={new Date().toISOString().slice(0, 10)}
+                  min={todayLocal()}
                   onChange={(e) => setDate(e.target.value)}
                   className="field-input-dark scheme-dark min-w-0"
                   required
