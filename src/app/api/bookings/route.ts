@@ -6,6 +6,7 @@ import { createBookingSchema } from "@/lib/validation/booking";
 import { generateReferenceCode } from "@/lib/reference-code";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { calculateQuote } from "@/lib/quote";
+import { guessCity } from "@/lib/emirates";
 import { notifyBookingRequested } from "@/lib/email/notify";
 import { dbErrorMessage, isDuplicateKeyError } from "@/lib/db-error";
 import { ensurePaymentLinkByReference } from "@/lib/payments/checkout";
@@ -99,6 +100,12 @@ export async function POST(req: Request) {
     // Nobody has agreed anything yet; the request has not been looked at. An
     // operator sets this if the fare they settle differs from the quote.
     agreedFare: null,
+    /**
+     * Guessed from the addresses so the job can be offered to the right
+     * drivers straight away. Null when nothing in the text names an emirate,
+     * which asks the operator rather than quietly picking the busiest group.
+     */
+    city: guessCity(input.pickupLocation, input.dropoffLocation),
     status: "requested" as const,
   };
 

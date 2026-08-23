@@ -15,7 +15,9 @@ import {
   vehiclePricing,
   BOOKING_STATUSES,
   CANCELLATION_REASONS,
+  EMIRATES,
   VEHICLE_CATEGORIES,
+  type Emirate,
   type CancellationReason,
 } from "@/db/schema";
 import { CANCELLATION_REASON_LABEL, CONFIRMED_STATUSES } from "@/lib/booking-status";
@@ -187,6 +189,7 @@ export async function createDriver(formData: FormData) {
     name,
     whatsappNumber: whatsapp,
     vehicleAssigned: vehicle || null,
+    city: readCity(formData.get("city")),
     active: true,
   });
 
@@ -796,7 +799,12 @@ export async function updateDriver(formData: FormData) {
 
   await db
     .update(drivers)
-    .set({ name, whatsappNumber: whatsapp, vehicleAssigned: vehicle || null })
+    .set({
+      name,
+      whatsappNumber: whatsapp,
+      vehicleAssigned: vehicle || null,
+      city: readCity(formData.get("city")),
+    })
     .where(eq(drivers.id, driverId));
 
   revalidatePath("/admin/drivers");
@@ -957,4 +965,35 @@ export async function createPhoneBooking(formData: FormData) {
   }
 
   throw new Error("Could not allocate a booking reference. Try again.");
+}
+
+
+/** A city from a form field, falling back to where most of the work is. */
+function readCity(value: FormDataEntryValue | null): Emirate {
+  const city = String(value ?? "");
+  return EMIRATES.includes(city as never) ? (city as Emirate) : "dubai";
+}
+
+/**
+ * Corrects which emirate's drivers a job is offered to.
+ *
+ * The guess reads the pickup address, which is free text a customer typed —
+ * "Marina Walk" names no city, and an airport run starting in Dubai and ending
+ * in Sharjah is a judgement an operator makes better than a substring match.
+ */
+export async function updateBookingCity(formData: FormData) {
+  await requireAdmin();
+
+  const bookingId = String(formData.get("bookingId") ?? "");
+  const city = String(formData.get("city") ?? "");
+
+  if (!bookingId) throw new Error("Invalid request");
+  if (!EMIRATES.includes(city as never)) throw new Error("Choose an emirate");
+
+  await db
+    .update(bookings)
+    .set({ city: city as Emirate })
+    .where(eq(bookings.id, bookingId));
+
+  revalidatePath(`/admin/bookings/${bookingId}`);
 }

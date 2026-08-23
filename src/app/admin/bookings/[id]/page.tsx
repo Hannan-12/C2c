@@ -12,6 +12,9 @@ import {
 } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin-session";
 import { fareWasAgreed, payableFare } from "@/lib/fare";
+import { EMIRATES, EMIRATE_LABEL } from "@/lib/emirates";
+import { availabilitySlip, jobSlip } from "@/lib/slips";
+import { CopyButton } from "@/components/copy-button";
 import { BRAND } from "@/lib/seo";
 import {
   CANCELLATION_REASON_LABEL,
@@ -32,6 +35,7 @@ import { StatusPill } from "../../page";
 import {
   addBookingNote,
   assignDriver,
+  updateBookingCity,
   resendConfirmation,
   updateCustomerEmail,
   refundBooking,
@@ -104,10 +108,26 @@ export default async function BookingDetailPage({
       id: drivers.id,
       name: drivers.name,
       vehicleAssigned: drivers.vehicleAssigned,
+      city: drivers.city,
     })
     .from(drivers)
     .where(eq(drivers.active, true))
     .orderBy(asc(drivers.name));
+
+  /**
+   * The booking's own emirate first, then the others. Nothing is excluded — an
+   * airport run routinely ends in another emirate, and a driver already
+   * heading that way is often the right answer — but the people nearest the
+   * pickup should not be somewhere down a list.
+   */
+  const driverGroups = [
+    ...(booking.city ? [booking.city] : []),
+    ...EMIRATES.filter((e) => e !== booking.city),
+  ].map((emirate) => ({
+    emirate,
+    label: EMIRATE_LABEL[emirate],
+    drivers: activeDrivers.filter((d) => d.city === emirate),
+  }));
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   const trackingUrl = `${siteUrl}/track/${booking.referenceCode}`;
@@ -143,7 +163,15 @@ export default async function BookingDetailPage({
     ) / 100;
 
   const customerMessage = `Hi ${booking.customerName}, this is ${BRAND} about your booking ${booking.referenceCode} — ${route} on ${formatPickup(booking.pickupDatetime)}. Track it here: ${trackingUrl}`;
-  const driverMessage = `Job ${booking.referenceCode}\nPickup: ${booking.pickupLocation}\n${booking.dropoffLocation ? `Dropoff: ${booking.dropoffLocation}\n` : ""}When: ${formatPickup(booking.pickupDatetime)}\nVehicle: ${VEHICLE_LABEL[booking.vehicleCategory]}\nPassengers: ${booking.passengerCount}, bags: ${booking.luggageCount}`;
+  /**
+   * Two slips, deliberately different. The first goes to a whole city's group
+   * and withholds the customer and the money; the second goes to the one
+   * person now doing the trip and withholds nothing.
+   */
+  const groupSlip = availabilitySlip(booking);
+  const driverMessage = assignment?.driverName
+    ? jobSlip(booking, assignment.driverName)
+    : "";
 
   return (
     <>
@@ -546,6 +574,92 @@ export default async function BookingDetailPage({
             )}
           </section>
 
+          {/*
+            The two slips a job produces, in the order they go out: find a
+            driver, then tell the one who took it.
+          */}
+          <section className="card">
+            <h2 className="font-semibold mb-1">Driver slips</h2>
+            <p className="text-sm text-ink-muted mb-4">
+              Offer it to a city&apos;s group first, then send the full details
+              to whoever takes it.
+            </p>
+
+            <form action={updateBookingCity} className="mb-5 pb-5 border-b border-line">
+              <input type="hidden" name="bookingId" value={booking.id} />
+              <label htmlFor="city" className="field-label">
+                Which group
+                {booking.city ? "" : " — the pickup address didn't name an emirate"}
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <select
+                  id="city"
+                  name="city"
+                  defaultValue={booking.city ?? ""}
+                  required
+                  className="field-input w-44"
+                >
+                  <option value="" disabled>
+                    Choose
+                  </option>
+                  {EMIRATES.map((e) => (
+                    <option key={e} value={e}>
+                      {EMIRATE_LABEL[e]}
+                    </option>
+                  ))}
+                </select>
+                <button type="submit" className="btn-secondary">
+                  Save
+                </button>
+              </div>
+            </form>
+
+            <p className="field-label">
+              1 · To the {booking.city ? EMIRATE_LABEL[booking.city] : "city"} group
+            </p>
+            <pre className="mb-2 max-h-56 overflow-auto rounded-field border border-line bg-field
+                            p-3 text-[12.5px] leading-relaxed whitespace-pre-wrap font-mono">
+              {groupSlip}
+            </pre>
+            {/*
+              Copied, not sent. wa.me addresses one person and WhatsApp offers
+              no way to reach a group from outside — so the operator pastes it,
+              which is what they were doing anyway. The point is that the job
+              number and the pickup time are generated rather than retyped.
+            */}
+            <CopyButton text={groupSlip} label="Copy group slip" copiedLabel="Copied — paste in the group" />
+            <p className="mt-2 text-xs text-ink-faint">
+              No customer name, number or fare — everyone in the group sees this,
+              including the drivers who will not do the job.
+            </p>
+
+            {assignment && driverMessage && (
+              <>
+                <p className="field-label mt-6">2 · To {assignment.driverName}</p>
+                <pre className="mb-2 max-h-56 overflow-auto rounded-field border border-line bg-field
+                                p-3 text-[12.5px] leading-relaxed whitespace-pre-wrap font-mono">
+                  {driverMessage}
+                </pre>
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    href={whatsappLink(assignment.driverWhatsapp, driverMessage)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-field bg-whatsapp px-4 py-2.5
+                               text-sm font-semibold text-white hover:brightness-95 transition"
+                  >
+                    Send to {assignment.driverName}
+                  </a>
+                  <CopyButton text={driverMessage} label="Copy" />
+                </div>
+                <p className="mt-2 text-xs text-ink-faint">
+                  Customer details and the driver&apos;s share — only for the
+                  driver doing this trip.
+                </p>
+              </>
+            )}
+          </section>
+
           <section className="card">
             <h2 className="font-semibold mb-1">Driver</h2>
 
@@ -601,12 +715,18 @@ export default async function BookingDetailPage({
                       Driver
                     </label>
                     <select id="driverId" name="driverId" required className="field-input">
-                      {activeDrivers.map((driver) => (
-                        <option key={driver.id} value={driver.id}>
-                          {driver.name}
-                          {driver.vehicleAssigned ? ` — ${driver.vehicleAssigned}` : ""}
-                        </option>
-                      ))}
+                      {driverGroups.map((group) =>
+                        group.drivers.length === 0 ? null : (
+                          <optgroup key={group.emirate} label={group.label}>
+                            {group.drivers.map((driver) => (
+                              <option key={driver.id} value={driver.id}>
+                                {driver.name}
+                                {driver.vehicleAssigned ? ` — ${driver.vehicleAssigned}` : ""}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ),
+                      )}
                     </select>
                   </div>
 

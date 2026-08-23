@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { bookingAssignments, drivers } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin-session";
 import { whatsappLink } from "@/lib/format";
+import { EMIRATES, EMIRATE_LABEL } from "@/lib/emirates";
 import {
   createDriver,
   deleteDriver,
@@ -42,9 +43,26 @@ export default async function DriversPage() {
   return (
     <>
       <h1 className="display text-2xl sm:text-3xl mb-1">Drivers</h1>
-      <p className="text-ink-muted mb-6">
-        Your existing drivers. Only active ones appear when assigning a booking.
+      <p className="text-ink-muted mb-6 max-w-2xl">
+        Only active drivers appear when assigning a booking, with the booking&apos;s
+        own emirate listed first. Being based somewhere is not a restriction —
+        an airport run routinely ends in another emirate.
       </p>
+
+      <div className="mb-6 flex flex-wrap gap-2">
+        {EMIRATES.map((e) => {
+          const n = list.filter((d) => d.city === e && d.active).length;
+          return (
+            <span
+              key={e}
+              className="rounded-full border border-line bg-field px-3 py-1.5 text-xs"
+            >
+              {EMIRATE_LABEL[e]}{" "}
+              <span className="tnum font-mono font-semibold">{n}</span>
+            </span>
+          );
+        })}
+      </div>
 
       <div className="grid lg:grid-cols-[1fr_320px] gap-6 items-start">
         {list.length === 0 ? (
@@ -77,7 +95,7 @@ export default async function DriversPage() {
                     <td colSpan={4} className="px-5 py-3.5">
                       <form
                         action={updateDriver}
-                        className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end"
+                        className="grid gap-2 sm:grid-cols-[1fr_1fr_auto_1fr_auto] sm:items-end"
                       >
                         <input type="hidden" name="driverId" value={driver.id} />
 
@@ -105,6 +123,24 @@ export default async function DriversPage() {
                             defaultValue={driver.whatsappNumber}
                             className="field-input font-mono text-[13px]"
                           />
+                        </div>
+
+                        <div>
+                          <label className="field-label" htmlFor={`city-${driver.id}`}>
+                            Based in
+                          </label>
+                          <select
+                            id={`city-${driver.id}`}
+                            name="city"
+                            defaultValue={driver.city}
+                            className="field-input"
+                          >
+                            {EMIRATES.map((e) => (
+                              <option key={e} value={e}>
+                                {EMIRATE_LABEL[e]}
+                              </option>
+                            ))}
+                          </select>
                         </div>
 
                         <div>
@@ -211,6 +247,23 @@ export default async function DriversPage() {
             />
             <p className="mt-1.5 text-xs text-ink-faint">
               International format, no plus sign.
+            </p>
+          </div>
+
+          <div className="mb-3.5">
+            <label className="field-label" htmlFor="city">
+              Based in
+            </label>
+            <select id="city" name="city" defaultValue="dubai" className="field-input">
+              {EMIRATES.map((e) => (
+                <option key={e} value={e}>
+                  {EMIRATE_LABEL[e]}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-xs text-ink-faint">
+              Decides which jobs they are offered first. Not a restriction —
+              anyone can be assigned any trip.
             </p>
           </div>
 

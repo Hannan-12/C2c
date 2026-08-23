@@ -51,6 +51,16 @@ export const PAYMENT_STATUSES = [
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
 /**
+ * The emirates the business runs drivers in.
+ *
+ * Stored rather than derived from an address, because an address is free text
+ * a customer typed and the city decides which group of drivers sees the job.
+ * Guessing is fine as a default; being unable to correct the guess is not.
+ */
+export const EMIRATES = ["dubai", "abu_dhabi", "sharjah"] as const;
+export type Emirate = (typeof EMIRATES)[number];
+
+/**
  * Why a booking was cancelled, in the terms the refund policy is written in.
  *
  * A closed list rather than free text, because these are the cases that decide
@@ -188,6 +198,16 @@ export const bookings = mysqlTable(
     confirmationEmailSentAt: datetime("confirmation_email_sent_at"),
 
     /**
+     * Which emirate's drivers should see this job.
+     *
+     * Guessed from the pickup address when the booking is created and
+     * correctable afterwards — a pickup written "Marina Walk" names no city,
+     * and an airport run that starts in Dubai and ends in Sharjah is a
+     * judgement call an operator makes better than a substring match.
+     */
+    city: mysqlEnum("city", EMIRATES),
+
+    /**
      * Set when the booking is cancelled, and required at that moment — the
      * reason is knowable then and reconstructed only badly weeks later, which
      * is exactly when a refund gets questioned.
@@ -299,6 +319,15 @@ export const drivers = mysqlTable(
     name: varchar("name", { length: 200 }).notNull(),
     whatsappNumber: varchar("whatsapp_number", { length: 30 }).notNull(),
     vehicleAssigned: varchar("vehicle_assigned", { length: 200 }),
+
+    /**
+     * Where this driver is based.
+     *
+     * Not a restriction — an airport run routinely ends in another emirate, so
+     * anyone can be assigned anything. It decides who is offered a job first,
+     * which is the question that actually gets asked at 6am.
+     */
+    city: mysqlEnum("city", EMIRATES).notNull().default("dubai"),
     /** Only active drivers appear in the assignment dropdown. */
     active: boolean("active").notNull().default(true),
     createdAt: datetime("created_at")
