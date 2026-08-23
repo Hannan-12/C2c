@@ -1,0 +1,1 @@
+ALTER TABLE `bookings` ADD `created_channel` enum('web','admin') DEFAULT 'web' NOT NULL;

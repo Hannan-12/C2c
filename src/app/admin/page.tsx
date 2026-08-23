@@ -226,12 +226,28 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
     .from(bookings)
     .where(inArray(bookings.status, OPEN_STATUSES));
 
+  /**
+   * The applied filters, minus pagination — an export of "page 2" is not a
+   * thing anyone wants, and the file should cover everything the filters
+   * select rather than the rows currently visible.
+   */
+  const exportQuery = new URLSearchParams(
+    Object.entries({ status, service, payment, from, to, q }).filter(
+      ([, v]) => typeof v === "string" && v !== "",
+    ) as [string, string][],
+  ).toString();
+
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const filtered = filters.length > 0;
 
   return (
     <>
-      <h1 className="display text-2xl sm:text-3xl mb-6">Bookings</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <h1 className="display text-2xl sm:text-3xl">Bookings</h1>
+        <Link href="/admin/bookings/new" className="btn-primary">
+          Booking over the phone
+        </Link>
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 mb-8">
         <Stat label="New today" value={todayCount} />
@@ -338,6 +354,25 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
           )}
         </div>
       </form>
+
+      {/*
+        Outside the filter form: a link, not a second submit button, so it
+        carries the filters that are actually applied rather than whatever is
+        currently typed into the boxes.
+      */}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-ink-muted">
+          {total} {total === 1 ? "booking" : "bookings"}
+          {filtered ? " matching these filters" : ""}
+        </p>
+        <a
+          href={`/api/admin/export${exportQuery ? `?${exportQuery}` : ""}`}
+          className="btn-secondary"
+          download
+        >
+          Download CSV
+        </a>
+      </div>
 
       {/*
         Tied to the filter above rather than shown as a headline stat: it is

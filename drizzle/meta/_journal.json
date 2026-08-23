@@ -71,6 +71,13 @@
       "when": 1787499836120,
       "tag": "0009_brief_spot",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1787501239972,
+      "tag": "0010_left_black_bolt",
+      "breakpoints": true
     }
   ]
 }

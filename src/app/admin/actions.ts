@@ -22,9 +22,12 @@ import { CANCELLATION_REASON_LABEL, CONFIRMED_STATUSES } from "@/lib/booking-sta
 import { splitFare } from "@/lib/commission";
 import { requireAdmin } from "@/lib/admin-session";
 import { hashPassword, verifyPassword } from "@/lib/password";
-import { isDuplicateKeyError } from "@/lib/db-error";
+import { dbErrorMessage, isDuplicateKeyError } from "@/lib/db-error";
 import { notifyBookingConfirmed } from "@/lib/email/notify";
 import { ensurePaymentLink } from "@/lib/payments/checkout";
+import { createBookingSchema } from "@/lib/validation/booking";
+import { generateReferenceCode } from "@/lib/reference-code";
+import { calculateQuote } from "@/lib/quote";
 import { createRefund } from "@/lib/payments/stripe";
 import { recordRefund } from "@/lib/payments/record-refund";
 import { SESSION_COOKIE } from "@/lib/session";
@@ -828,4 +831,130 @@ export async function deleteDriver(formData: FormData) {
   await db.delete(drivers).where(eq(drivers.id, driverId));
 
   revalidatePath("/admin/drivers");
+}
+
+/**
+ * Creates a booking an operator took over the phone.
+ *
+ * A regular who rings up had to be typed into the public site as if they were
+ * the customer, which then arrived as an unconfirmed request the operator
+ * confirmed to themselves — and counted as a website conversion.
+ *
+ * Validated through the same schema the public API uses, so nothing can be
+ * created here that the rules would refuse there: capacity against the vehicle,
+ * a real WhatsApp number, an hourly booking that meets the minimum. The one
+ * difference is that it arrives confirmed, because a person on the phone has
+ * already agreed it.
+ */
+export async function createPhoneBooking(formData: FormData) {
+  const admin = await requireAdmin();
+
+  const raw = {
+    serviceType: String(formData.get("serviceType") ?? "ride"),
+    pickupLocation: String(formData.get("pickupLocation") ?? "").trim(),
+    dropoffLocation: String(formData.get("dropoffLocation") ?? "").trim() || undefined,
+    pickupDatetime: String(formData.get("pickupDatetime") ?? ""),
+    durationHours: formData.get("durationHours")
+      ? Number(formData.get("durationHours"))
+      : undefined,
+    vehicleCategory: String(formData.get("vehicleCategory") ?? "comfort"),
+    passengerCount: Number(formData.get("passengerCount") ?? 1),
+    luggageCount: Number(formData.get("luggageCount") ?? 0),
+    customerName: String(formData.get("customerName") ?? "").trim(),
+    customerWhatsapp: String(formData.get("customerWhatsapp") ?? ""),
+    customerEmail: String(formData.get("customerEmail") ?? "").trim(),
+    paymentMethod: String(formData.get("paymentMethod") ?? "cash"),
+  };
+
+  const parsed = createBookingSchema.safeParse(raw);
+  if (!parsed.success) {
+    // Surfaced as one message rather than per field: this form is used by
+    // someone with the customer on the phone, and a list they can read out is
+    // more use than a highlighted box.
+    throw new Error(parsed.error.issues.map((i) => i.message).join(" · "));
+  }
+
+  const input = parsed.data;
+
+  /**
+   * Priced the same way the public form prices it, so a phone booking and a
+   * web booking for the same trip quote the same fare. Best-effort: a route
+   * that cannot be measured leaves the fare unset, and the operator types the
+   * agreed figure instead.
+   */
+  let quote: Awaited<ReturnType<typeof calculateQuote>> | null = null;
+  try {
+    quote = await calculateQuote({
+      serviceType: input.serviceType,
+      vehicleCategory: input.vehicleCategory,
+      pickupLocation: input.pickupLocation,
+      dropoffLocation: input.dropoffLocation,
+      durationHours: input.durationHours,
+    });
+  } catch (error) {
+    console.error("Phone booking quote failed:", dbErrorMessage(error));
+  }
+
+  const agreedRaw = String(formData.get("agreedFare") ?? "").trim();
+  const agreedFare =
+    agreedRaw === "" ? null : Number(agreedRaw) > 0 ? Number(agreedRaw).toFixed(2) : null;
+
+  if (agreedRaw !== "" && agreedFare === null) {
+    throw new Error("Enter a fare greater than zero, or leave it blank to use the quote");
+  }
+  if (!quote && !agreedFare) {
+    throw new Error(
+      "The route could not be priced, so enter the fare you agreed with the customer",
+    );
+  }
+
+  const bookingId = randomUUID();
+
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const referenceCode = generateReferenceCode();
+    try {
+      await db.insert(bookings).values({
+        id: bookingId,
+        referenceCode,
+        serviceType: input.serviceType,
+        pickupLocation: input.pickupLocation,
+        dropoffLocation: input.dropoffLocation ?? null,
+        pickupDatetime: input.pickupDatetime,
+        durationHours: input.durationHours ?? null,
+        vehicleCategory: input.vehicleCategory,
+        passengerCount: input.passengerCount,
+        luggageCount: input.luggageCount,
+        distanceKm: quote?.distanceKm?.toString() ?? null,
+        durationMin: quote?.durationMin ?? null,
+        fareEstimate: quote?.fareEstimate.toString() ?? null,
+        agreedFare,
+        customerName: input.customerName,
+        customerWhatsapp: input.customerWhatsapp,
+        customerEmail: input.customerEmail,
+        paymentMethod: input.paymentMethod,
+        paymentStatus: input.paymentMethod === "card" ? "pending" : "not_required",
+        // Already agreed on the phone — there is nobody left to confirm it with.
+        status: "confirmed",
+        createdChannel: "admin",
+      });
+
+      await writeNote(
+        bookingId,
+        admin.email,
+        `Taken over the phone and confirmed${agreedFare ? ` at AED ${agreedFare}` : ""}.`,
+      );
+
+      // A card customer gets the same link a web booking would produce.
+      const payUrl = await ensurePaymentLink(bookingId);
+      await notifyBookingConfirmed(bookingId, payUrl ?? undefined);
+
+      revalidatePath("/admin");
+      redirect(`/admin/bookings/${bookingId}`);
+    } catch (error) {
+      if (isDuplicateKeyError(error)) continue;
+      throw error;
+    }
+  }
+
+  throw new Error("Could not allocate a booking reference. Try again.");
 }

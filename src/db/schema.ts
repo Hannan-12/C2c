@@ -166,6 +166,19 @@ export const bookings = mysqlTable(
     status: mysqlEnum("status", BOOKING_STATUSES).notNull().default("requested"),
 
     /**
+     * Where the booking came from.
+     *
+     * Defaults to the website, which is what every existing row was. Phone
+     * bookings taken by an operator behave differently — they arrive already
+     * agreed, and they are not conversions — so counting them together would
+     * flatter the site's numbers and hide how much of the business still comes
+     * through the phone.
+     */
+    createdChannel: mysqlEnum("created_channel", ["web", "admin"])
+      .notNull()
+      .default("web"),
+
+    /**
      * When the "Booking Confirmed" email went out (docs Section 2).
      *
      * Recorded rather than inferred from status, because status can move
