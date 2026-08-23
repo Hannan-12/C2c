@@ -119,6 +119,17 @@ export default async function BookingDetailPage({
   const agreedDiffers = fareWasAgreed(booking);
 
   /**
+   * Net of everything that has actually moved, against what is owed.
+   *
+   * Positive means the customer still owes; negative means they were charged
+   * too much and are owed it back. Both happen once a trip changes after
+   * payment, and an operator who cannot see which is which will guess.
+   */
+  const settled = Number(booking.amountPaid ?? 0) - Number(booking.amountRefunded ?? 0);
+  const balance = payable === null ? 0 : Math.round((payable - settled) * 100) / 100;
+  const overpaid = balance < 0 ? Math.abs(balance) : 0;
+
+  /**
    * What is still refundable. Computed here so the form can offer it as the
    * default and cap the input — the server checks it again, since a max
    * attribute is a hint to the browser and nothing more.
@@ -207,14 +218,37 @@ export default async function BookingDetailPage({
               a booking can always answer both "what did you quote me" and
               "what am I paying".
             */}
-            {booking.paymentStatus === "paid" ? (
-              <p className="mt-5 pt-5 border-t border-line text-sm text-ink-muted">
-                The fare is settled — {formatFare(payable ?? 0)} has been paid. To
-                change it now, refund and re-charge rather than editing the
-                figure underneath a completed payment.
+            {booking.paymentStatus === "paid" && balance !== 0 && (
+              /*
+                The gap between what is owed and what has actually moved. Shown
+                as a fact with the amount spelled out, not as an instruction:
+                whether the difference is worth collecting, waiving or refunding
+                is the operator's call, and a screen that decided for them would
+                be wrong about half the time.
+              */
+              <p
+                className={`mt-5 pt-5 border-t border-line text-sm ${
+                  balance > 0 ? "text-amber-700" : "text-ink-muted"
+                }`}
+              >
+                {balance > 0 ? (
+                  <>
+                    <strong>{formatFare(balance)} still to collect.</strong> The
+                    agreed fare is {formatFare(payable ?? 0)} and{" "}
+                    {formatFare(settled)} has been taken. Take it in cash, or send
+                    a fresh payment link.
+                  </>
+                ) : (
+                  <>
+                    <strong>{formatFare(overpaid)} overpaid.</strong> The agreed
+                    fare is {formatFare(payable ?? 0)} and {formatFare(settled)}{" "}
+                    has been taken. The refund below is set to the difference.
+                  </>
+                )}
               </p>
-            ) : (
-              <form action={updateFare} className="mt-5 pt-5 border-t border-line">
+            )}
+
+            <form action={updateFare} className="mt-5 pt-5 border-t border-line">
                 <input type="hidden" name="bookingId" value={booking.id} />
                 <label htmlFor="fare" className="field-label">
                   Agreed fare — blank uses the{" "}
@@ -240,14 +274,19 @@ export default async function BookingDetailPage({
                     Save fare
                   </button>
                 </div>
-                {booking.paymentMethod === "card" && (
-                  <p className="mt-2 text-xs text-ink-faint">
-                    Saving issues a new payment link for this amount. Any link
-                    already sent stops working.
-                  </p>
-                )}
-              </form>
-            )}
+              {booking.paymentMethod === "card" && booking.paymentStatus !== "paid" && (
+                <p className="mt-2 text-xs text-ink-faint">
+                  Saving issues a new payment link for this amount. Any link
+                  already sent stops working.
+                </p>
+              )}
+              {booking.paymentStatus === "paid" && (
+                <p className="mt-2 text-xs text-ink-faint">
+                  Already paid, so nothing is charged or refunded by saving —
+                  the difference is shown above and acted on separately.
+                </p>
+              )}
+            </form>
           </section>
 
           {/*
@@ -337,8 +376,9 @@ export default async function BookingDetailPage({
                 <form action={refundBooking} className="mt-5 pt-5 border-t border-line">
                   <input type="hidden" name="bookingId" value={booking.id} />
                   <label htmlFor="refund-amount" className="field-label">
-                    Refund amount — leave blank for the full{" "}
-                    {formatFare(outstanding)} outstanding
+                    {overpaid > 0
+                      ? `Refund amount — set to the ${formatFare(overpaid)} overpaid`
+                      : `Refund amount — leave blank for the full ${formatFare(outstanding)}`}
                   </label>
                   <div className="flex flex-wrap gap-2">
                     <input
@@ -349,7 +389,8 @@ export default async function BookingDetailPage({
                       min="0.01"
                       max={outstanding}
                       inputMode="decimal"
-                      placeholder={outstanding.toFixed(2)}
+                      defaultValue={overpaid > 0 ? overpaid.toFixed(2) : ""}
+                    placeholder={outstanding.toFixed(2)}
                       className="field-input w-40"
                     />
                     <button type="submit" className="btn-secondary">

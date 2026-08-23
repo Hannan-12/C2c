@@ -317,11 +317,18 @@ export async function updateFare(formData: FormData) {
 
   if (!booking) throw new Error("Booking not found");
 
-  if (booking.paymentStatus === "paid") {
-    throw new Error(
-      "This booking is already paid. Refund it, or take the difference separately, rather than changing the fare underneath a completed payment.",
-    );
-  }
+  /**
+   * A paid booking can still be re-quoted — the trip changed, stops were
+   * added, part of it went wrong. Refusing outright was the safe first cut,
+   * but it left the operator with a booking whose recorded fare they knew to
+   * be wrong and no way to correct it.
+   *
+   * What is deliberately *not* done here is move money. Editing a figure and
+   * having a card charged or refunded as a side effect is the kind of thing
+   * nobody expects from a text field. The action records the truth; the
+   * payment panel then shows the balance either way, and refunding stays the
+   * explicit act it was.
+   */
 
   const raw = String(formData.get("fare") ?? "").trim();
 
