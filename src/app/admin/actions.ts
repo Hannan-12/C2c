@@ -4,9 +4,10 @@ import { randomUUID } from "crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, count, eq, inArray, isNull, ne } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  adminUsers,
   bookings,
   bookingAssignments,
   bookingNotes,
@@ -20,6 +21,8 @@ import {
 import { CANCELLATION_REASON_LABEL, CONFIRMED_STATUSES } from "@/lib/booking-status";
 import { splitFare } from "@/lib/commission";
 import { requireAdmin } from "@/lib/admin-session";
+import { hashPassword, verifyPassword } from "@/lib/password";
+import { isDuplicateKeyError } from "@/lib/db-error";
 import { notifyBookingConfirmed } from "@/lib/email/notify";
 import { ensurePaymentLink } from "@/lib/payments/checkout";
 import { createRefund } from "@/lib/payments/stripe";
@@ -645,4 +648,123 @@ export async function updateCustomerEmail(formData: FormData) {
   );
 
   revalidatePath(`/admin/bookings/${bookingId}`);
+}
+
+/** Short enough to type, long enough that guessing is not the way in. */
+const MIN_PASSWORD = 10;
+
+/**
+ * Adds a colleague.
+ *
+ * Until this existed the site had one shared login that could only be changed
+ * by running SQL and a hashing script, which means in practice it was never
+ * changed — and every action in the admin was attributable to "the admin"
+ * rather than to a person. Notes name their author, so accounts are what make
+ * that record worth anything.
+ */
+export async function createAdminUser(formData: FormData) {
+  await requireAdmin();
+
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const name = String(formData.get("name") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    throw new Error("Enter a valid email address");
+  }
+  if (password.length < MIN_PASSWORD) {
+    throw new Error(`Use a password of at least ${MIN_PASSWORD} characters`);
+  }
+
+  try {
+    await db.insert(adminUsers).values({
+      id: randomUUID(),
+      email,
+      name: name || null,
+      passwordHash: await hashPassword(password),
+      active: true,
+    });
+  } catch (error) {
+    if (isDuplicateKeyError(error)) {
+      throw new Error("An account with that email already exists");
+    }
+    throw error;
+  }
+
+  revalidatePath("/admin/staff");
+}
+
+/**
+ * Turns an account off, or back on.
+ *
+ * Never deleted. A booking note names whoever wrote it, and an account removed
+ * outright would leave those notes attributed to an address nobody can place.
+ * Deactivating also takes effect on the next request rather than the next
+ * login, because requireAdmin re-checks the flag every time.
+ */
+export async function setAdminUserActive(formData: FormData) {
+  const admin = await requireAdmin();
+
+  const userId = String(formData.get("userId") ?? "");
+  const active = String(formData.get("active") ?? "") === "true";
+  if (!userId) throw new Error("Account is required");
+
+  /**
+   * Refusing to deactivate yourself is not paternalism — it is the only thing
+   * standing between a mis-click and an admin panel nobody can reach, since
+   * the way back in would be the SQL this screen exists to replace.
+   */
+  if (userId === admin.sub && !active) {
+    throw new Error("You cannot deactivate the account you are signed in with");
+  }
+
+  if (!active) {
+    const [{ remaining }] = await db
+      .select({ remaining: count() })
+      .from(adminUsers)
+      .where(and(eq(adminUsers.active, true), ne(adminUsers.id, userId)));
+
+    if (remaining === 0) throw new Error("At least one account must stay active");
+  }
+
+  await db.update(adminUsers).set({ active }).where(eq(adminUsers.id, userId));
+
+  revalidatePath("/admin/staff");
+}
+
+/** Changes your own password, proving you know the current one first. */
+export async function changeOwnPassword(formData: FormData) {
+  const admin = await requireAdmin();
+
+  const current = String(formData.get("currentPassword") ?? "");
+  const next = String(formData.get("newPassword") ?? "");
+
+  if (next.length < MIN_PASSWORD) {
+    throw new Error(`Use a password of at least ${MIN_PASSWORD} characters`);
+  }
+  if (next === current) throw new Error("The new password is the same as the old one");
+
+  const [user] = await db
+    .select()
+    .from(adminUsers)
+    .where(eq(adminUsers.id, admin.sub))
+    .limit(1);
+
+  if (!user) throw new Error("Account not found");
+
+  /**
+   * The current password is required even though the session already proves
+   * who this is. A session left open on a shared laptop is the case this
+   * guards against, and it is the case that actually happens.
+   */
+  if (!(await verifyPassword(current, user.passwordHash))) {
+    throw new Error("That is not your current password");
+  }
+
+  await db
+    .update(adminUsers)
+    .set({ passwordHash: await hashPassword(next) })
+    .where(eq(adminUsers.id, admin.sub));
+
+  revalidatePath("/admin/staff");
 }

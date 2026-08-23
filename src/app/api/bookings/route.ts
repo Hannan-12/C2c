@@ -7,7 +7,7 @@ import { generateReferenceCode } from "@/lib/reference-code";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { calculateQuote } from "@/lib/quote";
 import { notifyBookingRequested } from "@/lib/email/notify";
-import { dbErrorCode, dbErrorMessage } from "@/lib/db-error";
+import { dbErrorMessage, isDuplicateKeyError } from "@/lib/db-error";
 import { ensurePaymentLinkByReference } from "@/lib/payments/checkout";
 
 /** Booking submission is a write from an anonymous visitor — cap it per IP. */
@@ -16,12 +16,6 @@ const SUBMIT_WINDOW_MS = 60 * 60 * 1000;
 
 /** Reference collisions are vanishingly unlikely, but retry rather than 500. */
 const MAX_CODE_ATTEMPTS = 5;
-
-function isDuplicateKeyError(error: unknown): boolean {
-  // Read through Drizzle's wrapper — the driver's code is on `error.cause`,
-  // so checking the wrapper directly never matched and a collision 500'd.
-  return dbErrorCode(error) === "ER_DUP_ENTRY";
-}
 
 export async function POST(req: Request) {
   const limit = rateLimit(

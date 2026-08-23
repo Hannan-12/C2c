@@ -32,3 +32,13 @@ export function dbErrorCode(error: unknown): string | undefined {
   const code = (cause as { code?: unknown }).code;
   return typeof code === "string" ? code : undefined;
 }
+
+/**
+ * A unique constraint rejected the write.
+ *
+ * Reads through Drizzle's wrapper: the driver's code sits on `error.cause`, so
+ * checking the wrapper directly never matches and the caller retries nothing.
+ */
+export function isDuplicateKeyError(error: unknown): boolean {
+  return dbErrorCode(error) === "ER_DUP_ENTRY";
+}

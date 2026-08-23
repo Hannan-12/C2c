@@ -8,6 +8,7 @@ const NAV = [
   { href: "/admin/drivers", label: "Drivers", exact: false },
   { href: "/admin/pricing", label: "Pricing", exact: false },
   { href: "/admin/finance", label: "Money", exact: false },
+  { href: "/admin/staff", label: "Staff", exact: false },
 ];
 
 export function AdminNav() {
