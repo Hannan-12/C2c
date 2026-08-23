@@ -136,13 +136,29 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
     !overCapacity;
 
   /**
-   * Derived, never stored. The URL asks for a step and the entered data decides
-   * how far that request can be honoured, so opening /book?step=payment cold
-   * lands on the first screen that still needs filling in rather than on a
-   * confirm button with nothing behind it.
+   * Where to start when the URL names no step — decided once, on the first
+   * render, and never recomputed.
+   *
+   * It used to be derived from tripComplete on every render, which was fine
+   * only while the date and time started empty: the trip could not complete
+   * itself while someone was still typing. Once those gained defaults, the
+   * first character typed into the destination completed the trip and threw
+   * the customer forward to the vehicle step mid-word.
+   *
+   * Advancing is something the customer does by pressing Continue, which sets
+   * the step in the URL. Arriving with a route already filled in — from the
+   * homepage panel, or a destination card — still opens on the vehicle step,
+   * because that is true at the moment this is decided.
    */
-  const requestedStep = (params.get("step") ??
-    (tripComplete ? "vehicle" : "trip")) as Step;
+  const [initialStep] = useState<Step>(() => (tripComplete ? "vehicle" : "trip"));
+
+  /**
+   * The URL asks for a step and the entered data decides how far that request
+   * can be honoured, so opening /book?step=payment cold lands on the first
+   * screen that still needs filling in rather than on a confirm button with
+   * nothing behind it.
+   */
+  const requestedStep = (params.get("step") ?? initialStep) as Step;
   const reachableIndex = !tripComplete ? 0 : !detailsComplete ? 2 : 3;
   const requestedIndex = STEP_ORDER.indexOf(requestedStep);
   const step =
