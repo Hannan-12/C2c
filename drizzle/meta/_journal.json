@@ -50,6 +50,13 @@
       "when": 1787416445443,
       "tag": "0006_curved_mister_sinister",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1787425262951,
+      "tag": "0007_tan_ser_duncan",
+      "breakpoints": true
     }
   ]
 }

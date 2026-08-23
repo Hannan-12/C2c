@@ -23,6 +23,7 @@ import {
   REFUND_BANK_DAYS_LABEL,
   REFUND_REVIEW_DAYS_LABEL,
 } from "@/lib/service-terms";
+import { fareWasAgreed, payableFare } from "@/lib/fare";
 import { paymentsEnabled } from "@/lib/payments/stripe";
 
 /** Status changes as the admin works the booking, so never cache this. */
@@ -80,6 +81,10 @@ export default async function TrackingPage({
 
   const currentStep = timelineIndex(booking.status);
   const cancelled = booking.status === "cancelled";
+
+  /** What the customer owes: the agreed fare where one was set, else the quote. */
+  const fare = payableFare(booking);
+  const fareAgreed = fareWasAgreed(booking);
 
   /**
    * Null unless money has actually gone back, so the panel below can lead with
@@ -250,13 +255,15 @@ export default async function TrackingPage({
                     : undefined
                 }
               />
+              {/*
+                Labelled for what it is. Once a person has agreed a figure it
+                is a commitment, not an estimate, and the terms say a confirmed
+                fare does not move — so calling it an estimate here would
+                undersell a promise the business has already made.
+              */}
               <Detail
-                label="Estimated fare"
-                value={
-                  booking.fareEstimate
-                    ? formatFare(Number(booking.fareEstimate))
-                    : "Confirmed with you directly"
-                }
+                label={fareAgreed ? "Agreed fare" : "Estimated fare"}
+                value={fare !== null ? formatFare(fare) : "Confirmed with you directly"}
               />
             </dl>
           </section>
@@ -340,7 +347,7 @@ export default async function TrackingPage({
                     </p>
                   )}
                 </>
-              ) : booking.fareEstimate && paymentsEnabled() ? (
+              ) : fare !== null && paymentsEnabled() ? (
                 <>
                   <p className="mb-3 text-sm text-ink-muted">
                     {returnedFromCheckout
@@ -352,7 +359,7 @@ export default async function TrackingPage({
                       <p className="mb-3 flex items-baseline justify-between gap-3">
                         <span className="text-ink-muted">Amount</span>
                         <span className="font-mono text-lg font-bold">
-                          {formatFare(Number(booking.fareEstimate))}
+                          {formatFare(fare)}
                         </span>
                       </p>
                       <PayButton reference={booking.referenceCode} />

@@ -101,6 +101,9 @@ export async function POST(req: Request) {
     distanceKm: quote?.distanceKm?.toString() ?? null,
     durationMin: quote?.durationMin ?? null,
     fareEstimate: quote?.fareEstimate.toString() ?? null,
+    // Nobody has agreed anything yet; the request has not been looked at. An
+    // operator sets this if the fare they settle differs from the quote.
+    agreedFare: null,
     status: "requested" as const,
   };
 

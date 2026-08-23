@@ -2,6 +2,7 @@ import { eq, isNull, and } from "drizzle-orm";
 import { db } from "@/db";
 import { bookings } from "@/db/schema";
 import { sendEmail } from "./client";
+import { fareWasAgreed, payableFare } from "@/lib/fare";
 import {
   bookingConfirmed,
   bookingRequestReceived,
@@ -52,6 +53,7 @@ export type NotifiableBooking = Pick<
   | "distanceKm"
   | "durationMin"
   | "fareEstimate"
+  | "agreedFare"
 >;
 
 function toEmailData(booking: NotifiableBooking, customerEmail: string): BookingEmailData {
@@ -67,7 +69,11 @@ function toEmailData(booking: NotifiableBooking, customerEmail: string): Booking
     flightNumber: booking.flightNumber,
     distanceKm: num(booking.distanceKm),
     durationMin: booking.durationMin,
-    fareEstimate: num(booking.fareEstimate),
+    // The agreed figure where there is one: the email states what the
+    // customer will be asked to pay, not what was calculated before a person
+    // spoke to them.
+    fareEstimate: payableFare(booking),
+    fareAgreed: fareWasAgreed(booking),
   };
 }
 

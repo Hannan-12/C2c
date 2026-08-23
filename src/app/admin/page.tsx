@@ -6,6 +6,7 @@ import { bookings, BOOKING_STATUSES, SERVICE_TYPES } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin-session";
 import { STATUS_LABEL, SERVICE_LABEL, type BookingStatus } from "@/lib/booking-status";
 import { formatFare, formatPickup } from "@/lib/format";
+import { payableFare } from "@/lib/fare";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +76,7 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
           pickupDatetime: bookings.pickupDatetime,
           status: bookings.status,
           fareEstimate: bookings.fareEstimate,
+          agreedFare: bookings.agreedFare,
         })
         .from(bookings)
         .where(where)
@@ -244,7 +246,7 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
                     {formatPickup(row.pickupDatetime)}
                   </td>
                   <td className="tnum px-4 py-3.5 text-right font-mono whitespace-nowrap">
-                    {row.fareEstimate ? formatFare(Number(row.fareEstimate)) : "—"}
+                    {payableFare(row) !== null ? formatFare(payableFare(row)!) : "—"}
                   </td>
                   <td className="px-5 py-3.5">
                     <StatusPill status={row.status} />

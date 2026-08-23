@@ -237,3 +237,73 @@ export async function refundBooking(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath(`/admin/bookings/${bookingId}`);
 }
+
+/**
+ * Sets the fare a person agreed with the customer.
+ *
+ * Written to `agreedFare`, leaving the calculated estimate intact, so the
+ * booking can always answer both "what did you quote me" and "what am I
+ * paying". Clearing the field falls back to the estimate.
+ *
+ * Refuses once the card has been charged. Changing the figure then would leave
+ * the booking claiming one amount while Stripe holds another — the customer
+ * needs either a second charge or a partial refund, and neither is something
+ * to do silently behind a fare edit.
+ */
+export async function updateFare(formData: FormData) {
+  await requireAdmin();
+
+  const bookingId = String(formData.get("bookingId") ?? "");
+  if (!bookingId) throw new Error("Invalid fare update");
+
+  const [booking] = await db
+    .select()
+    .from(bookings)
+    .where(eq(bookings.id, bookingId))
+    .limit(1);
+
+  if (!booking) throw new Error("Booking not found");
+
+  if (booking.paymentStatus === "paid") {
+    throw new Error(
+      "This booking is already paid. Refund it, or take the difference separately, rather than changing the fare underneath a completed payment.",
+    );
+  }
+
+  const raw = String(formData.get("fare") ?? "").trim();
+
+  // Empty means "no override" — the calculated estimate stands again.
+  let agreedFare: string | null = null;
+
+  if (raw !== "") {
+    const amount = Number(raw);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error("Enter a fare greater than zero, or leave it blank to use the estimate");
+    }
+    // Guards a slipped decimal point rather than a real price: the most
+    // expensive tier at its hourly rate does not approach this.
+    if (amount > 100000) throw new Error("That fare looks like a typing mistake");
+
+    agreedFare = amount.toFixed(2);
+  }
+
+  await db.update(bookings).set({ agreedFare }).where(eq(bookings.id, bookingId));
+
+  /**
+   * Re-issue the payment link so it carries the new amount. ensurePaymentLink
+   * overwrites the stored session id, and the webhook matches on the current
+   * one — so the superseded link stops being able to settle this booking even
+   * though Stripe will still serve it until it expires.
+   *
+   * Only for a card booking that has been agreed with the customer. Creating a
+   * link for a request nobody has confirmed yet would invite payment for a trip
+   * we have not accepted.
+   */
+  if (booking.paymentMethod === "card" && CONFIRMED_STATUSES.includes(booking.status)) {
+    await ensurePaymentLink(bookingId);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath(`/admin/bookings/${bookingId}`);
+  revalidatePath(`/track/${booking.referenceCode}`);
+}

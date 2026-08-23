@@ -17,6 +17,8 @@ export type BookingEmailData = {
   distanceKm?: number | null;
   durationMin?: number | null;
   fareEstimate?: number | null;
+  /** True once a person has agreed the figure, so it is no longer an estimate. */
+  fareAgreed?: boolean;
 };
 
 const SERVICE_LABEL: Record<ServiceType, string> = {
@@ -65,7 +67,13 @@ function detailRows(booking: BookingEmailData): [string, string][] {
   if (trip.length) rows.push(["Estimated trip", trip.join(" · ")]);
 
   if (booking.fareEstimate != null) {
-    rows.push(["Estimated fare", formatFare(booking.fareEstimate)]);
+    // An agreed fare is a commitment and must not be labelled an estimate —
+    // the terms say a confirmed fare does not move, and the email is where the
+    // customer reads it.
+    rows.push([
+      booking.fareAgreed ? "Agreed fare" : "Estimated fare",
+      formatFare(booking.fareEstimate),
+    ]);
   }
 
   return rows;

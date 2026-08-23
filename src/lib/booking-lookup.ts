@@ -27,6 +27,8 @@ export type PublicBooking = {
   distanceKm: string | null;
   durationMin: number | null;
   fareEstimate: string | null;
+  /** Set when a person agreed a different figure; that is what is charged. */
+  agreedFare: string | null;
   customerName: string;
   /**
    * Payment state, but never Stripe's identifiers. A session id in a page
@@ -68,6 +70,7 @@ export async function getBookingByReference(
       distanceKm: bookings.distanceKm,
       durationMin: bookings.durationMin,
       fareEstimate: bookings.fareEstimate,
+      agreedFare: bookings.agreedFare,
       customerName: bookings.customerName,
       paymentMethod: bookings.paymentMethod,
       paymentStatus: bookings.paymentStatus,
@@ -105,6 +108,7 @@ export async function getBookingByReference(
     distanceKm: row.distanceKm,
     durationMin: row.durationMin,
     fareEstimate: row.fareEstimate,
+    agreedFare: row.agreedFare,
     customerName: row.customerName,
     paymentMethod: row.paymentMethod,
     paymentStatus: row.paymentStatus,

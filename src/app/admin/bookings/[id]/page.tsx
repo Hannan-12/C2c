@@ -5,6 +5,7 @@ import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { bookings, bookingAssignments, drivers } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin-session";
+import { fareWasAgreed, payableFare } from "@/lib/fare";
 import { BRAND } from "@/lib/seo";
 import {
   SERVICE_LABEL,
@@ -20,7 +21,13 @@ import {
   whatsappLink,
 } from "@/lib/format";
 import { StatusPill } from "../../page";
-import { assignDriver, refundBooking, unassignDriver, updateBookingStatus } from "../../actions";
+import {
+  assignDriver,
+  refundBooking,
+  unassignDriver,
+  updateBookingStatus,
+  updateFare,
+} from "../../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -89,6 +96,10 @@ export default async function BookingDetailPage({
 
   // Prefilled so the operator never retypes trip details into WhatsApp
   // (docs Section 8).
+  /** The figure that gets charged: the agreed fare, else the route quote. */
+  const payable = payableFare(booking);
+  const agreedDiffers = fareWasAgreed(booking);
+
   /**
    * What is still refundable. Computed here so the form can offer it as the
    * default and cap the input — the server checks it again, since a max
@@ -153,12 +164,72 @@ export default async function BookingDetailPage({
                 }
               />
               <Detail
-                label="Fare estimate"
+                label="Quoted from the route"
                 value={
                   booking.fareEstimate ? formatFare(Number(booking.fareEstimate)) : "Not calculated"
                 }
               />
+              {/*
+                Only when it differs. On the ordinary booking the quote is the
+                fare, and a second row repeating it would make the exception
+                harder to spot rather than easier.
+              */}
+              {agreedDiffers && (
+                <Detail label="Agreed with the customer" value={formatFare(payable!)} />
+              )}
             </dl>
+
+            {/*
+              Editable, because the fare a person settles on WhatsApp is the
+              one that gets charged — extra stops, a negotiated rate, or a trip
+              the customer changed after booking. Until this existed the link
+              could only ever charge the calculated estimate.
+
+              The quote stays visible above rather than being overwritten, so
+              a booking can always answer both "what did you quote me" and
+              "what am I paying".
+            */}
+            {booking.paymentStatus === "paid" ? (
+              <p className="mt-5 pt-5 border-t border-line text-sm text-ink-muted">
+                The fare is settled — {formatFare(payable ?? 0)} has been paid. To
+                change it now, refund and re-charge rather than editing the
+                figure underneath a completed payment.
+              </p>
+            ) : (
+              <form action={updateFare} className="mt-5 pt-5 border-t border-line">
+                <input type="hidden" name="bookingId" value={booking.id} />
+                <label htmlFor="fare" className="field-label">
+                  Agreed fare — blank uses the{" "}
+                  {booking.fareEstimate
+                    ? `quote of ${formatFare(Number(booking.fareEstimate))}`
+                    : "route quote, once there is one"}
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    id="fare"
+                    name="fare"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    inputMode="decimal"
+                    defaultValue={booking.agreedFare ? Number(booking.agreedFare) : ""}
+                    placeholder={
+                      booking.fareEstimate ? Number(booking.fareEstimate).toFixed(2) : "0.00"
+                    }
+                    className="field-input w-40"
+                  />
+                  <button type="submit" className="btn-secondary">
+                    Save fare
+                  </button>
+                </div>
+                {booking.paymentMethod === "card" && (
+                  <p className="mt-2 text-xs text-ink-faint">
+                    Saving issues a new payment link for this amount. Any link
+                    already sent stops working.
+                  </p>
+                )}
+              </form>
+            )}
           </section>
 
           {/*

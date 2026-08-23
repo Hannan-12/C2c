@@ -126,6 +126,21 @@ export const bookings = mysqlTable(
     durationMin: int("duration_min"),
     fareEstimate: decimal("fare_estimate", { precision: 10, scale: 2 }),
 
+    /**
+     * What a person actually agreed with the customer, when that differs from
+     * the calculated estimate.
+     *
+     * Separate from `fareEstimate` rather than overwriting it. The estimate is
+     * what the system quoted from the route; the agreed fare is what was
+     * settled on WhatsApp — after extra stops, a negotiated rate, or a trip the
+     * customer changed. Keeping both means a booking can always answer "what
+     * did you quote me?" as well as "what am I paying?", which is the first
+     * question in any dispute about a fare that moved.
+     *
+     * Null means nobody overrode anything and the estimate stands.
+     */
+    agreedFare: decimal("agreed_fare", { precision: 10, scale: 2 }),
+
     customerName: varchar("customer_name", { length: 200 }).notNull(),
     customerWhatsapp: varchar("customer_whatsapp", { length: 30 }).notNull(),
     customerEmail: varchar("customer_email", { length: 320 }),

@@ -1,0 +1,1 @@
+ALTER TABLE `bookings` ADD `agreed_fare` decimal(10,2);
