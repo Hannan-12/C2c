@@ -8,16 +8,22 @@ import { isValidReferenceCode, normaliseReferenceCode } from "@/lib/reference-co
 import { payableFare } from "@/lib/fare";
 
 /**
- * Creates the payment link for a confirmed card booking.
+ * Creates the payment link for a card booking.
  *
- * Deliberately not called at submission time: a booking is a request until an
- * admin agrees the fare, and charging before that would mean refunding every
- * trip the business turns down. By the time this runs the fare is settled and
- * the amount is real.
+ * Called at submission, so a customer who chose card goes straight to
+ * checkout, and again whenever the fare changes — the newer session supersedes
+ * the older one, and the webhook matches on the current id, so a stale link
+ * cannot settle a revised fare.
+ *
+ * Charging before the business has accepted the trip is a deliberate trade.
+ * It means refunding the ones we turn down, which is work; asking a customer
+ * with their wallet already out to come back later costs more. The refund
+ * policy covers it: if we cannot cover a booking, nothing is kept.
  *
  * Best-effort, like the email notifications. A booking that exists but has no
- * payment link is recoverable — the admin sees it and can retry, or take cash.
- * A confirmation blocked because Stripe was down is not.
+ * payment link is recoverable — the customer has a Pay now button on their
+ * tracking page, and the admin can retry or take cash. A booking lost because
+ * Stripe was down is not.
  */
 export async function ensurePaymentLink(bookingId: string): Promise<string | null> {
   if (!paymentsEnabled()) return null;

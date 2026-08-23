@@ -8,6 +8,7 @@ import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { calculateQuote } from "@/lib/quote";
 import { notifyBookingRequested } from "@/lib/email/notify";
 import { dbErrorCode, dbErrorMessage } from "@/lib/db-error";
+import { ensurePaymentLinkByReference } from "@/lib/payments/checkout";
 
 /** Booking submission is a write from an anonymous visitor — cap it per IP. */
 const SUBMIT_LIMIT = 10;
@@ -117,6 +118,25 @@ export async function POST(req: Request) {
       // throws, and adds one API call to a request that already made one.
       await notifyBookingRequested({ ...row, referenceCode });
 
+      /**
+       * A card customer goes straight to Stripe from here.
+       *
+       * The alternative — take the request, have someone confirm it, then send
+       * a link — loses the customer at the point they were most willing to
+       * pay. They chose card, they have their wallet out, and asking them to
+       * come back later converts worse than anything else on the page.
+       *
+       * Best-effort. If Stripe is unreachable, or the route could not be
+       * measured so there is no fare to charge, the booking still exists and
+       * the response simply carries no payUrl — the customer lands on their
+       * tracking page, where Pay now is waiting. A booking that failed to
+       * reach checkout is recoverable; one lost because Stripe was down is not.
+       */
+      let payUrl: string | null = null;
+      if (row.paymentMethod === "card") {
+        payUrl = await ensurePaymentLinkByReference(referenceCode);
+      }
+
       return NextResponse.json(
         {
           referenceCode,
@@ -126,6 +146,7 @@ export async function POST(req: Request) {
           durationMin: quote?.durationMin ?? null,
           fareEstimate: quote?.fareEstimate ?? null,
           currency: quote?.currency ?? null,
+          payUrl,
         },
         { status: 201 },
       );

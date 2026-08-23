@@ -51,14 +51,14 @@ const NUMBERED_STEPS: { id: Step; label: string }[] = [
  * How the customer wants to settle up. Cash is first and is the default: it is
  * how this business already works, and card is the addition.
  *
- * Nothing is charged at this step either way. The booking is a request until
- * an admin confirms the fare, so a card customer is choosing how they will pay
- * later, not paying now — the copy has to say so, or the missing card form
- * reads as a broken page.
+ * The two choices now behave differently, and the copy has to say which is
+ * which before the button is pressed. Cash settles with the driver; card sends
+ * the customer to Stripe as soon as they submit. Discovering that only by
+ * being redirected would feel like a trap.
  */
 const PAYMENT_CHOICES: { id: PaymentMethod; label: string; note: string }[] = [
-  { id: "cash", label: "Cash", note: "Pay the driver directly" },
-  { id: "card", label: "Card", note: "We send a secure payment link" },
+  { id: "cash", label: "Cash", note: "Pay the driver at the end of the ride" },
+  { id: "card", label: "Card", note: "Pay now, securely, through Stripe" },
 ];
 
 export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) {
@@ -295,6 +295,22 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
         } else {
           setFormError(data.error ?? "Could not submit your booking.");
         }
+        return;
+      }
+
+      /**
+       * Straight to Stripe when there is something to pay, in this tab.
+       *
+       * A new tab would be wrong here: the customer pressed Submit on a form
+       * and expects to move forward, not to have a window appear beside the
+       * one they were using. Stripe returns them to the tracking page either
+       * way, so the journey ends in the same place.
+       *
+       * router.push is not used — payUrl is on another origin, and Next's
+       * router only navigates within the app.
+       */
+      if (data.payUrl) {
+        window.location.href = data.payUrl;
         return;
       }
 
@@ -738,7 +754,7 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
           </h2>
           <p className="text-sm text-ink-muted mb-4">
             {cardEnabled
-              ? "Nothing is charged now. We confirm the fare with you first."
+              ? "Choose card and we'll take you to Stripe to pay now. Choose cash and nothing is charged until the ride is done."
               : "Pay the driver directly at the end of your ride. Nothing is charged now."}
           </p>
 
@@ -829,16 +845,21 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
         >
           {step === "payment"
             ? submitting
-              ? "Submitting…"
-              : "Confirm Booking →"
+              ? paymentMethod === "card"
+                ? "Opening secure checkout…"
+                : "Submitting…"
+              : paymentMethod === "card"
+                ? "Continue to payment →"
+                : "Confirm Booking →"
             : "Continue →"}
         </button>
       </div>
 
       {step === "payment" && (
         <p className="mt-4 text-xs text-ink-faint">
-          Submitting sends a booking request. We&apos;ll confirm availability and
-          the final fare over WhatsApp before your ride is assigned.
+          {paymentMethod === "card"
+            ? "You'll pay on Stripe's secure page, then come back here to track your ride. We confirm availability over WhatsApp — if we can't cover your trip, you're refunded in full."
+            : "Submitting sends a booking request. We'll confirm availability and the final fare over WhatsApp before your ride is assigned."}
         </p>
       )}
     </form>

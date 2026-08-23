@@ -79,6 +79,7 @@ export default function TermsPage() {
               <LegalList
                 items={[
                   "You receive a reference code immediately. It identifies the request, and lets you track it.",
+                  "Paying by card does not confirm the booking. It reserves your fare at the price quoted; a person still checks availability, and if we cannot cover the trip you are refunded in full.",
                   "We contact you to confirm the vehicle, the timing and the final fare.",
                   <>Your booking is confirmed only once we say so. Until then, treat it as pending.</>,
                   "If we cannot cover your trip properly, we will tell you rather than accept it and hope.",
@@ -92,24 +93,26 @@ export default function TermsPage() {
           body: (
             <>
               <p>
-                The figure shown when you book is an <strong>estimate</strong>,
-                calculated from your route and vehicle class. The fare becomes
-                fixed when we confirm it with you.
+                The figure shown when you book is calculated from your route and
+                vehicle class. Paying by card charges that figure straight away;
+                paying cash leaves it an <strong>estimate</strong> until we
+                confirm it with you.
               </p>
               <LegalList
                 items={[
                   "A confirmed fare does not change because of traffic, a longer route, or demand. There is no surge pricing.",
                   "It does change if you change the trip — a new destination, extra stops, or additional hours are re-quoted and agreed with you.",
                   "Tolls, parking and airport gate fees are included unless we tell you otherwise when confirming.",
-                  "We accept cash, card and bank transfer. Payment is due on completion of the trip unless agreed otherwise in advance.",
+                  "We accept cash, card and bank transfer. Cash is paid to the driver at the end of the trip.",
                   <>
-                    Card payments are taken through a secure link we send after
-                    confirming, and are handled by Stripe — we never see your
-                    full card number. How money comes back is set out in our{" "}
+                    Choosing card takes you to Stripe when you book, and the
+                    estimate shown is what is charged. We never see your full
+                    card number. If we then cannot cover your trip, or you
+                    cancel in time, the money comes back — our{" "}
                     <Link href="/refunds" className="text-ink-muted hover:text-accent-strong">
                       refund policy
-                    </Link>
-                    .
+                    </Link>{" "}
+                    sets out when and how much.
                   </>,
                 ]}
               />

@@ -69,13 +69,15 @@ export default function RefundsPage() {
           body: (
             <>
               <p>
-                Submitting the booking form charges you nothing. It sends a
-                request, and a person checks availability and agrees the fare
-                with you first.
+                It depends how you chose to pay. Cash costs you nothing until
+                the ride is over. Card charges the quoted fare when you book —
+                and because a person still has to check availability afterwards,
+                the first thing that policy has to cover is what happens if we
+                cannot take the trip.
               </p>
               <LegalList
                 items={[
-                  "Card — once your booking is confirmed we send a secure payment link. The amount on that link is the fare we agreed with you, and nothing is taken until you complete it.",
+                  "Card — you pay on Stripe's secure page as you book, and the amount is the fare quoted on screen. If we cannot cover your trip, you are refunded in full; you never pay for a ride we did not accept.",
                   "Cash — paid to the driver at the end of the trip. Nothing is taken in advance, so there is nothing to refund if the trip does not happen.",
                   "Bank transfer — arranged with you directly, usually for corporate accounts.",
                 ]}
