@@ -72,9 +72,11 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
 
 export default async function BookingDetailPage({
   params,
+  searchParams,
 }: PageProps<"/admin/bookings/[id]">) {
   await requireAdmin();
   const { id } = await params;
+  const query = await searchParams;
 
   const [booking] = await db.select().from(bookings).where(eq(bookings.id, id)).limit(1);
   if (!booking) notFound();
@@ -115,16 +117,29 @@ export default async function BookingDetailPage({
     .orderBy(asc(drivers.name));
 
   /**
-   * Only the drivers based where the customer is picked up.
+   * The drivers based where the customer is picked up — and only those, unless
+   * the operator asks for more.
    *
-   * A restriction, not an ordering. The trade is deliberate: an airport run
-   * that ends in another emirate can no longer be given to a driver already
-   * heading that way, and in exchange nobody is ever assigned a pickup an hour
-   * from where they are. Whoever is nearest the customer wins.
+   * Narrow by default because whoever collects the customer should be near
+   * them, and a list of everyone invites assigning a pickup an hour away. But
+   * narrow is not always right: an Abu Dhabi to Dubai run can suit a Dubai
+   * driver who is already down there, and the alternative to widening was
+   * misstating the pickup emirate to get at them, which corrupts the dispatch
+   * record to work around a dropdown.
+   *
+   * So it widens on a deliberate click, and says loudly that it has.
    */
-  const assignableDrivers = booking.city
+  const widened = query.drivers === "all";
+
+  const localDrivers = booking.city
     ? activeDrivers.filter((d) => d.city === booking.city)
     : [];
+
+  const otherDrivers = booking.city
+    ? activeDrivers.filter((d) => d.city !== booking.city)
+    : activeDrivers;
+
+  const assignableDrivers = widened ? [...localDrivers, ...otherDrivers] : localDrivers;
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   const trackingUrl = `${siteUrl}/track/${booking.referenceCode}`;
@@ -755,7 +770,18 @@ export default async function BookingDetailPage({
                 >
                   Add one there
                 </Link>
-                , or change the pickup emirate above if it is wrong.
+                {otherDrivers.length > 0 && (
+                  <>
+                    , or{" "}
+                    <Link
+                      href={`/admin/bookings/${booking.id}?drivers=all`}
+                      className="underline hover:text-ink"
+                    >
+                      assign someone from another emirate
+                    </Link>
+                  </>
+                )}
+                . Check the pickup emirate above if it looks wrong.
               </p>
             ) : (
               <form action={assignDriver} className="mt-4">
@@ -767,12 +793,46 @@ export default async function BookingDetailPage({
                       Driver
                     </label>
                     <select id="driverId" name="driverId" required className="field-input">
-                      {assignableDrivers.map((driver) => (
-                        <option key={driver.id} value={driver.id}>
-                          {driver.name}
-                          {driver.vehicleAssigned ? ` — ${driver.vehicleAssigned}` : ""}
-                        </option>
-                      ))}
+                      {/*
+                        Grouped once widened, with the pickup's own emirate
+                        first and the rest labelled by where they are — an
+                        out-of-emirate driver is a decision, and the label is
+                        what makes it one rather than a mis-click.
+                      */}
+                      {widened ? (
+                        <>
+                          <optgroup
+                            label={`${booking.city ? EMIRATE_LABEL[booking.city] : "Local"} — nearest the pickup`}
+                          >
+                            {localDrivers.map((driver) => (
+                              <option key={driver.id} value={driver.id}>
+                                {driver.name}
+                                {driver.vehicleAssigned ? ` — ${driver.vehicleAssigned}` : ""}
+                              </option>
+                            ))}
+                          </optgroup>
+                          {EMIRATES.filter((e) => e !== booking.city).map((emirate) => {
+                            const list = otherDrivers.filter((d) => d.city === emirate);
+                            return list.length === 0 ? null : (
+                              <optgroup key={emirate} label={`${EMIRATE_LABEL[emirate]} — travelling in`}>
+                                {list.map((driver) => (
+                                  <option key={driver.id} value={driver.id}>
+                                    {driver.name}
+                                    {driver.vehicleAssigned ? ` — ${driver.vehicleAssigned}` : ""}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            );
+                          })}
+                        </>
+                      ) : (
+                        assignableDrivers.map((driver) => (
+                          <option key={driver.id} value={driver.id}>
+                            {driver.name}
+                            {driver.vehicleAssigned ? ` — ${driver.vehicleAssigned}` : ""}
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
 
@@ -793,6 +853,32 @@ export default async function BookingDetailPage({
                   Assign driver
                 </button>
                 <p className="mt-2 text-xs text-ink-faint">
+                  {widened ? (
+                    <>
+                      Showing every emirate.{" "}
+                      <Link
+                        href={`/admin/bookings/${booking.id}`}
+                        className="underline hover:text-ink"
+                      >
+                        Just {booking.city ? EMIRATE_LABEL[booking.city] : "the pickup emirate"}
+                      </Link>
+                      . A driver from elsewhere has to travel to the pickup —
+                      only worth it if they are already nearby.
+                      <br />
+                    </>
+                  ) : otherDrivers.length > 0 ? (
+                    <>
+                      Only {booking.city ? EMIRATE_LABEL[booking.city] : "local"} drivers.{" "}
+                      <Link
+                        href={`/admin/bookings/${booking.id}?drivers=all`}
+                        className="underline hover:text-ink"
+                      >
+                        Show all {otherDrivers.length} from other emirates
+                      </Link>{" "}
+                      if someone is already travelling that way.
+                      <br />
+                    </>
+                  ) : null}
                   Assigning moves the booking to “Driver assigned” and reveals the
                   driver&apos;s details on the customer&apos;s tracking page.
                 </p>
