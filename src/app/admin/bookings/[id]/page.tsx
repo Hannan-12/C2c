@@ -12,7 +12,7 @@ import {
 } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin-session";
 import { fareWasAgreed, payableFare } from "@/lib/fare";
-import { EMIRATES, EMIRATE_LABEL } from "@/lib/emirates";
+import { EMIRATES, EMIRATE_LABEL, guessCity } from "@/lib/emirates";
 import { availabilitySlip, jobSlip } from "@/lib/slips";
 import { CopyButton } from "@/components/copy-button";
 import { BRAND } from "@/lib/seo";
@@ -168,6 +168,15 @@ export default async function BookingDetailPage({
    * and withholds the customer and the money; the second goes to the one
    * person now doing the trip and withholds nothing.
    */
+  /**
+   * Bookings taken before the city column existed have none, and neither do
+   * ones whose pickup named no emirate. Guessing here rather than only at
+   * creation means an old booking still arrives with the right group
+   * pre-selected instead of asking the operator to work it out.
+   */
+  const suggestedCity =
+    booking.city ?? guessCity(booking.pickupLocation, booking.dropoffLocation);
+
   const groupSlip = availabilitySlip(booking);
   const driverMessage = assignment?.driverName
     ? jobSlip(booking, assignment.driverName)
@@ -589,13 +598,17 @@ export default async function BookingDetailPage({
               <input type="hidden" name="bookingId" value={booking.id} />
               <label htmlFor="city" className="field-label">
                 Which group
-                {booking.city ? "" : " — the pickup address didn't name an emirate"}
+                {booking.city
+                  ? ""
+                  : suggestedCity
+                    ? " — suggested from the pickup, save to confirm"
+                    : " — the pickup address names no emirate"}
               </label>
               <div className="flex flex-wrap gap-2">
                 <select
                   id="city"
                   name="city"
-                  defaultValue={booking.city ?? ""}
+                  defaultValue={booking.city ?? suggestedCity ?? ""}
                   required
                   className="field-input w-44"
                 >
@@ -617,17 +630,33 @@ export default async function BookingDetailPage({
             <p className="field-label">
               1 · To the {booking.city ? EMIRATE_LABEL[booking.city] : "city"} group
             </p>
-            <pre className="mb-2 max-h-56 overflow-auto rounded-field border border-line bg-field
-                            p-3 text-[12.5px] leading-relaxed whitespace-pre-wrap font-mono">
-              {groupSlip}
-            </pre>
+
             {/*
-              Copied, not sent. wa.me addresses one person and WhatsApp offers
-              no way to reach a group from outside — so the operator pastes it,
-              which is what they were doing anyway. The point is that the job
-              number and the pickup time are generated rather than retyped.
+              A picture, not a pasted block. In a group chat text is one message
+              among hundreds and WhatsApp collapses it after four lines; an image
+              survives forwarding, stays legible, and can be read at a red light.
+
+              An ordinary img so the operator can see what they are about to
+              send. The route sets Content-Disposition, so the same URL behind
+              the button downloads rather than opens.
             */}
-            <CopyButton text={groupSlip} label="Copy group slip" copiedLabel="Copied — paste in the group" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/admin/bookings/${booking.id}/slip?for=group`}
+              alt={`Group slip for ${booking.referenceCode}`}
+              className="mb-3 w-full max-w-lg rounded-field border border-line"
+            />
+
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={`/admin/bookings/${booking.id}/slip?for=group`}
+                download={`${booking.referenceCode}-group.png`}
+                className="btn-primary"
+              >
+                Download picture
+              </a>
+              <CopyButton text={groupSlip} label="Copy as text" />
+            </div>
             <p className="mt-2 text-xs text-ink-faint">
               No customer name, number or fare — everyone in the group sees this,
               including the drivers who will not do the job.
@@ -636,11 +665,27 @@ export default async function BookingDetailPage({
             {assignment && driverMessage && (
               <>
                 <p className="field-label mt-6">2 · To {assignment.driverName}</p>
-                <pre className="mb-2 max-h-56 overflow-auto rounded-field border border-line bg-field
-                                p-3 text-[12.5px] leading-relaxed whitespace-pre-wrap font-mono">
-                  {driverMessage}
-                </pre>
+
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/admin/bookings/${booking.id}/slip?for=driver`}
+                  alt={`Job slip for ${assignment.driverName}`}
+                  className="mb-3 w-full max-w-lg rounded-field border border-line"
+                />
+
                 <div className="flex flex-wrap gap-2">
+                  <a
+                    href={`/admin/bookings/${booking.id}/slip?for=driver`}
+                    download={`${booking.referenceCode}-driver.png`}
+                    className="btn-primary"
+                  >
+                    Download picture
+                  </a>
+                  {/*
+                    WhatsApp cannot be handed an image through a link — only
+                    text — so the chat opens with the details written out and
+                    the picture is attached from the download.
+                  */}
                   <a
                     href={whatsappLink(assignment.driverWhatsapp, driverMessage)}
                     target="_blank"
@@ -648,9 +693,9 @@ export default async function BookingDetailPage({
                     className="inline-flex items-center gap-2 rounded-field bg-whatsapp px-4 py-2.5
                                text-sm font-semibold text-white hover:brightness-95 transition"
                   >
-                    Send to {assignment.driverName}
+                    Open chat
                   </a>
-                  <CopyButton text={driverMessage} label="Copy" />
+                  <CopyButton text={driverMessage} label="Copy as text" />
                 </div>
                 <p className="mt-2 text-xs text-ink-faint">
                   Customer details and the driver&apos;s share — only for the

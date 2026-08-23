@@ -125,3 +125,88 @@ export function jobSlip(booking: SlipBooking, driverName: string): string {
 
   return lines.join("\n");
 }
+
+
+export type SlipField = { label: string; value: string; strong?: boolean };
+
+/**
+ * The slip as label/value pairs, for the rendered picture.
+ *
+ * Shares its rules with the text versions above rather than restating them: a
+ * picture that disagrees with the message beside it is worse than having only
+ * one of the two, and the rule being shared is the one that matters — what a
+ * whole group is allowed to see.
+ */
+export function slipFields(
+  booking: SlipBooking,
+  opts: { audience: "group" | "driver"; driverName?: string | null },
+): SlipField[] {
+  const fields: SlipField[] = [
+    {
+      label: "Service",
+      value: `${SERVICE_LABEL[booking.serviceType] ?? booking.serviceType}${
+        booking.city ? ` · ${EMIRATE_LABEL[booking.city]}` : ""
+      }`,
+    },
+    { label: "When", value: formatPickup(booking.pickupDatetime), strong: true },
+    { label: "From", value: booking.pickupLocation },
+  ];
+
+  if (booking.dropoffLocation) fields.push({ label: "To", value: booking.dropoffLocation });
+  if (booking.durationHours) {
+    fields.push({ label: "Duration", value: `${booking.durationHours} hours` });
+  }
+
+  const trip = [
+    booking.distanceKm != null ? formatDistance(Number(booking.distanceKm)) : null,
+    booking.durationMin != null ? formatDuration(booking.durationMin) : null,
+  ].filter(Boolean);
+  if (trip.length) fields.push({ label: "Trip", value: trip.join(" · ") });
+
+  fields.push(
+    {
+      label: "Vehicle",
+      value: VEHICLE_LABEL[booking.vehicleCategory] ?? booking.vehicleCategory,
+    },
+    {
+      label: "Passengers",
+      value: `${booking.passengerCount} · ${booking.luggageCount} bags`,
+    },
+  );
+
+  // Everything below is withheld from a group slip: a customer's details and
+  // the money are for the one driver actually doing the trip.
+  if (opts.audience === "driver") {
+    if (opts.driverName) fields.push({ label: "Driver", value: opts.driverName });
+
+    fields.push(
+      { label: "Customer", value: booking.customerName },
+      { label: "Phone", value: `+${booking.customerWhatsapp}` },
+    );
+
+    if (booking.flightNumber) fields.push({ label: "Flight", value: booking.flightNumber });
+
+    const fare = payableFare(booking);
+    if (fare !== null) {
+      const split = splitFare(booking);
+      fields.push({
+        label: booking.paymentMethod === "cash" ? "Collect in cash" : "Already paid",
+        value:
+          booking.paymentMethod === "cash"
+            ? formatFare(fare)
+            : `${formatFare(fare)} — take no cash`,
+        strong: true,
+      });
+      fields.push({ label: "Your share", value: formatFare(split.driver), strong: true });
+    } else {
+      fields.push({ label: "Fare", value: "Not set — check with the office" });
+    }
+  }
+
+  return fields;
+}
+
+/** The line at the top of a slip, which is also what it is for. */
+export function slipTitle(booking: SlipBooking, audience: "group" | "driver"): string {
+  return audience === "driver" ? "Job confirmed" : "Who's free?";
+}
