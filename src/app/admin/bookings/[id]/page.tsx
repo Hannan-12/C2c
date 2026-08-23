@@ -1,13 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { asc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { bookings, bookingAssignments, drivers } from "@/db/schema";
+import {
+  bookings,
+  bookingAssignments,
+  bookingNotes,
+  drivers,
+  CANCELLATION_REASONS,
+} from "@/db/schema";
 import { requireAdmin } from "@/lib/admin-session";
 import { fareWasAgreed, payableFare } from "@/lib/fare";
 import { BRAND } from "@/lib/seo";
 import {
+  CANCELLATION_REASON_LABEL,
   SERVICE_LABEL,
   STATUS_LABEL,
   VEHICLE_LABEL,
@@ -22,6 +29,7 @@ import {
 } from "@/lib/format";
 import { StatusPill } from "../../page";
 import {
+  addBookingNote,
   assignDriver,
   refundBooking,
   unassignDriver,
@@ -77,6 +85,16 @@ export default async function BookingDetailPage({
     .innerJoin(drivers, eq(drivers.id, bookingAssignments.driverId))
     .where(eq(bookingAssignments.bookingId, booking.id))
     .limit(1);
+
+  /**
+   * Newest first: an operator opening a booking wants what just happened, not
+   * how it began. The oldest entry is still one scroll away.
+   */
+  const notes = await db
+    .select()
+    .from(bookingNotes)
+    .where(eq(bookingNotes.bookingId, booking.id))
+    .orderBy(desc(bookingNotes.createdAt));
 
   const activeDrivers = await db
     .select({
@@ -299,6 +317,20 @@ export default async function BookingDetailPage({
               than is outstanding, and sends an idempotency key so a
               double-submit cannot pay twice.
             */}
+            {/*
+              Beside the refund control, not buried in the notes: whoever is
+              about to move money should see the grounds for it without having
+              to go looking, since the reason is what decides the amount.
+            */}
+            {booking.cancellationReason && (
+              <p className="mt-4 text-sm">
+                <span className="text-ink-faint">Cancelled — </span>
+                <span className="font-medium">
+                  {CANCELLATION_REASON_LABEL[booking.cancellationReason]}
+                </span>
+              </p>
+            )}
+
             {booking.paymentStatus === "paid" &&
               booking.stripePaymentIntentId &&
               outstanding > 0 && (
@@ -346,6 +378,57 @@ export default async function BookingDetailPage({
                   this booking will not produce one until a fare exists.
                 </p>
               )}
+          </section>
+
+          {/*
+            The booking's memory. Every agreement with a customer happens on
+            WhatsApp and lives only there, so without this a refund questioned
+            three weeks later has nothing behind it but recollection.
+
+            Never shown to the customer — the tracking page does not read this
+            table — so it can say what actually happened.
+          */}
+          <section className="card">
+            <h2 className="font-semibold mb-1">Notes</h2>
+            <p className="text-sm text-ink-muted mb-4">
+              Internal only. The customer never sees these.
+            </p>
+
+            <form action={addBookingNote} className="mb-5">
+              <input type="hidden" name="bookingId" value={booking.id} />
+              <label htmlFor="body" className="sr-only">
+                Add a note
+              </label>
+              <textarea
+                id="body"
+                name="body"
+                rows={2}
+                required
+                placeholder="What was agreed, and with whom"
+                className="field-input mb-2 resize-y"
+              />
+              <button type="submit" className="btn-secondary">
+                Add note
+              </button>
+            </form>
+
+            {notes.length === 0 ? (
+              <p className="text-sm text-ink-faint">
+                Nothing recorded yet. Cancellations and fare changes write here
+                automatically.
+              </p>
+            ) : (
+              <ol className="border-t border-line">
+                {notes.map((note) => (
+                  <li key={note.id} className="border-b border-line py-3 last:border-0">
+                    <p className="text-sm whitespace-pre-wrap">{note.body}</p>
+                    <p className="mt-1 text-[11px] text-ink-faint">
+                      {note.authorEmail} · {formatPickup(note.createdAt)}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            )}
           </section>
 
           <section className="card">
@@ -469,22 +552,69 @@ export default async function BookingDetailPage({
               </p>
             ) : (
               <div className="flex flex-col gap-2">
-                {NEXT_STATUSES[booking.status].map((next) => (
-                  <form key={next} action={updateBookingStatus}>
+                {NEXT_STATUSES[booking.status]
+                  .filter((next) => next !== "cancelled")
+                  .map((next) => (
+                    <form key={next} action={updateBookingStatus}>
+                      <input type="hidden" name="bookingId" value={booking.id} />
+                      <input type="hidden" name="status" value={next} />
+                      <button type="submit" className="btn-primary w-full">
+                        Mark {STATUS_LABEL[next].toLowerCase()}
+                      </button>
+                    </form>
+                  ))}
+
+                {/*
+                  Cancelling asks why before it will go through. Every other
+                  transition stays one click, because only this one decides
+                  what money comes back — and the answer is knowable now and
+                  badly reconstructed weeks later, which is exactly when a
+                  refund gets questioned.
+                */}
+                {NEXT_STATUSES[booking.status].includes("cancelled") && (
+                  <form
+                    action={updateBookingStatus}
+                    className="rounded-field border border-red-200 bg-red-50/60 p-3 mt-1"
+                  >
                     <input type="hidden" name="bookingId" value={booking.id} />
-                    <input type="hidden" name="status" value={next} />
+                    <input type="hidden" name="status" value="cancelled" />
+
+                    <label htmlFor="cancellationReason" className="field-label">
+                      Cancelling — why?
+                    </label>
+                    <select
+                      id="cancellationReason"
+                      name="cancellationReason"
+                      required
+                      defaultValue=""
+                      className="field-input mb-2"
+                    >
+                      <option value="" disabled>
+                        Choose a reason
+                      </option>
+                      {CANCELLATION_REASONS.map((r) => (
+                        <option key={r} value={r}>
+                          {CANCELLATION_REASON_LABEL[r]}
+                        </option>
+                      ))}
+                    </select>
+
+                    <input
+                      name="cancellationDetail"
+                      type="text"
+                      placeholder="Anything worth remembering (optional)"
+                      className="field-input mb-2"
+                    />
+
                     <button
                       type="submit"
-                      className={
-                        next === "cancelled"
-                          ? "w-full rounded-field border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100 transition-colors"
-                          : "btn-primary w-full"
-                      }
+                      className="w-full rounded-field border border-red-200 bg-red-50 px-4 py-2.5
+                                 text-sm font-semibold text-red-700 hover:bg-red-100 transition-colors"
                     >
-                      Mark {STATUS_LABEL[next].toLowerCase()}
+                      Cancel this booking
                     </button>
                   </form>
-                ))}
+                )}
               </div>
             )}
           </section>

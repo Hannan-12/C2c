@@ -9,11 +9,15 @@ import { db } from "@/db";
 import {
   bookings,
   bookingAssignments,
+  bookingNotes,
   drivers,
   vehiclePricing,
   BOOKING_STATUSES,
+  CANCELLATION_REASONS,
   VEHICLE_CATEGORIES,
+  type CancellationReason,
 } from "@/db/schema";
+import { CANCELLATION_REASON_LABEL } from "@/lib/booking-status";
 import { requireAdmin } from "@/lib/admin-session";
 import { notifyBookingConfirmed } from "@/lib/email/notify";
 import { ensurePaymentLink } from "@/lib/payments/checkout";
@@ -46,7 +50,7 @@ export async function signOut() {
 }
 
 export async function updateBookingStatus(formData: FormData) {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const bookingId = String(formData.get("bookingId") ?? "");
   const status = String(formData.get("status") ?? "") as BookingStatus;
@@ -55,7 +59,43 @@ export async function updateBookingStatus(formData: FormData) {
     throw new Error("Invalid status update");
   }
 
-  await db.update(bookings).set({ status }).where(eq(bookings.id, bookingId));
+  /**
+   * A cancellation must say why, at the moment it happens. The reason decides
+   * what money comes back — early, late and no-show are three different
+   * outcomes under the refund policy — and it is knowable now and only badly
+   * reconstructed weeks later, which is precisely when a refund gets
+   * questioned.
+   */
+  let cancellationReason: CancellationReason | undefined;
+
+  if (status === "cancelled") {
+    const reason = String(formData.get("cancellationReason") ?? "");
+    if (!CANCELLATION_REASONS.includes(reason as never)) {
+      throw new Error("Choose why this booking is being cancelled");
+    }
+    cancellationReason = reason as CancellationReason;
+  }
+
+  await db
+    .update(bookings)
+    .set(cancellationReason ? { status, cancellationReason } : { status })
+    .where(eq(bookings.id, bookingId));
+
+  /**
+   * The chosen reason is a category; anything the operator typed alongside it
+   * is the part that will actually explain the decision later. Recorded as an
+   * ordinary note so both live in one timeline.
+   */
+  if (cancellationReason) {
+    const detail = String(formData.get("cancellationDetail") ?? "").trim();
+    await writeNote(
+      bookingId,
+      admin.email,
+      detail
+        ? `Cancelled — ${CANCELLATION_REASON_LABEL[cancellationReason]}. ${detail}`
+        : `Cancelled — ${CANCELLATION_REASON_LABEL[cancellationReason]}.`,
+    );
+  }
 
   // Anything from "confirmed" onwards means the booking is agreed, so the
   // customer is owed the confirmation email. notifyBookingConfirmed sends it
@@ -185,7 +225,7 @@ export async function toggleDriverActive(formData: FormData) {
  * a no-op rather than a second email.
  */
 export async function refundBooking(formData: FormData) {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const bookingId = String(formData.get("bookingId") ?? "");
   if (!bookingId) throw new Error("Invalid refund request");
@@ -241,6 +281,12 @@ export async function refundBooking(formData: FormData) {
     capturedAed: refund.chargeAmountAed,
   });
 
+  await writeNote(
+    bookingId,
+    admin.email,
+    `Refunded AED ${amountAed.toFixed(2)} to the customer's card.`,
+  );
+
   revalidatePath("/admin");
   revalidatePath(`/admin/bookings/${bookingId}`);
 }
@@ -258,7 +304,7 @@ export async function refundBooking(formData: FormData) {
  * to do silently behind a fare edit.
  */
 export async function updateFare(formData: FormData) {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const bookingId = String(formData.get("bookingId") ?? "");
   if (!bookingId) throw new Error("Invalid fare update");
@@ -295,6 +341,20 @@ export async function updateFare(formData: FormData) {
   }
 
   await db.update(bookings).set({ agreedFare }).where(eq(bookings.id, bookingId));
+
+  /**
+   * A fare that moved after the customer agreed it is the first question in
+   * any dispute, so the change records itself rather than relying on whoever
+   * made it to remember to write it down.
+   */
+  const before = booking.agreedFare ?? booking.fareEstimate;
+  await writeNote(
+    bookingId,
+    admin.email,
+    agreedFare
+      ? `Fare set to AED ${agreedFare}${before ? ` (was AED ${before})` : ""}.`
+      : `Agreed fare cleared; the route quote of AED ${booking.fareEstimate ?? "—"} applies.`,
+  );
 
   /**
    * Re-issue the payment link so it carries the new amount. ensurePaymentLink
@@ -384,4 +444,45 @@ export async function updatePricing(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/rides");
   revalidatePath("/admin/pricing");
+}
+
+
+/** Longer than anyone writes in a hurry, short enough to stay a note. */
+const NOTE_MAX = 2000;
+
+/**
+ * Writes one entry on a booking's record.
+ *
+ * Internal to this module: notes are always written as part of something else
+ * that happened — a cancellation, a fare change — or typed deliberately
+ * through addBookingNote. Neither caller should be able to forge an author.
+ */
+async function writeNote(bookingId: string, authorEmail: string, body: string) {
+  await db.insert(bookingNotes).values({
+    id: randomUUID(),
+    bookingId,
+    authorEmail,
+    body: body.slice(0, NOTE_MAX),
+  });
+}
+
+/**
+ * An operator's note on a booking.
+ *
+ * Never shown to the customer — the tracking page does not read this table —
+ * so it can say what actually happened rather than something composed for an
+ * audience. That is the whole reason it is useful three weeks later.
+ */
+export async function addBookingNote(formData: FormData) {
+  const admin = await requireAdmin();
+
+  const bookingId = String(formData.get("bookingId") ?? "");
+  const body = String(formData.get("body") ?? "").trim();
+
+  if (!bookingId) throw new Error("Invalid note");
+  if (!body) throw new Error("Write something before saving the note");
+
+  await writeNote(bookingId, admin.email, body);
+
+  revalidatePath(`/admin/bookings/${bookingId}`);
 }

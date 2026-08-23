@@ -50,6 +50,24 @@ export const PAYMENT_STATUSES = [
 ] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
+/**
+ * Why a booking was cancelled, in the terms the refund policy is written in.
+ *
+ * A closed list rather than free text, because these are the cases that decide
+ * what money comes back — and an operator typing "customer changed mind" three
+ * different ways gives no way to tell later whether a refund was owed. The
+ * detail goes in a note; this is the part that has to be comparable.
+ */
+export const CANCELLATION_REASONS = [
+  "customer_early",
+  "customer_late",
+  "customer_no_show",
+  "we_cancelled",
+  "duplicate",
+  "other",
+] as const;
+export type CancellationReason = (typeof CANCELLATION_REASONS)[number];
+
 /** docs Section 5 — vehicle_category */
 export const VEHICLE_CATEGORIES = [
   "comfort",
@@ -155,6 +173,13 @@ export const bookings = mysqlTable(
      * confirmed must not re-send the email each time.
      */
     confirmationEmailSentAt: datetime("confirmation_email_sent_at"),
+
+    /**
+     * Set when the booking is cancelled, and required at that moment — the
+     * reason is knowable then and reconstructed only badly weeks later, which
+     * is exactly when a refund gets questioned.
+     */
+    cancellationReason: mysqlEnum("cancellation_reason", CANCELLATION_REASONS),
 
     /** Chosen by the customer on the booking form. */
     paymentMethod: mysqlEnum("payment_method", PAYMENT_METHODS)
@@ -292,11 +317,48 @@ export const bookingAssignments = mysqlTable(
   ],
 );
 
+/**
+ * The running record on a booking: what was agreed, and by whom.
+ *
+ * A table rather than a text column on `bookings`, even though the field would
+ * have been quicker. Every agreement with a customer currently happens on
+ * WhatsApp and lives only there, so this is the business's memory of a trip —
+ * and a memory is worth having authorship and a timestamp on each entry rather
+ * than a blob that has to be parsed to answer "who said that, and when".
+ * Appending to a column also means every save rewrites the whole history,
+ * which is how history gets lost.
+ *
+ * Never shown to the customer. The tracking page does not read this table, and
+ * an operator should be able to write "customer was rude to the driver"
+ * without composing it for an audience.
+ */
+export const bookingNotes = mysqlTable(
+  "booking_notes",
+  {
+    id: char("id", { length: 36 }).primaryKey(),
+    bookingId: char("booking_id", { length: 36 })
+      .notNull()
+      .references(() => bookings.id, { onDelete: "cascade" }),
+    /**
+     * The admin's email rather than a foreign key: a note should still say who
+     * wrote it after that account is deactivated or removed, and the whole
+     * point of the record is that it survives.
+     */
+    authorEmail: varchar("author_email", { length: 320 }).notNull(),
+    body: text("body").notNull(),
+    createdAt: datetime("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (t) => [index("booking_notes_booking_idx").on(t.bookingId)],
+);
+
 export type Booking = typeof bookings.$inferSelect;
 export type NewBooking = typeof bookings.$inferInsert;
 export type Driver = typeof drivers.$inferSelect;
 export type NewDriver = typeof drivers.$inferInsert;
 export type BookingAssignment = typeof bookingAssignments.$inferSelect;
 export type VehiclePricing = typeof vehiclePricing.$inferSelect;
+export type BookingNote = typeof bookingNotes.$inferSelect;
 export type VehicleCategory = (typeof VEHICLE_CATEGORIES)[number];
 export type ServiceType = (typeof SERVICE_TYPES)[number];

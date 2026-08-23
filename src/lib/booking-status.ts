@@ -1,4 +1,5 @@
-import type { BOOKING_STATUSES } from "@/db/schema";
+import type { BOOKING_STATUSES, CancellationReason } from "@/db/schema";
+import { FREE_CANCEL_HOURS, LATE_CANCEL_PERCENT } from "@/lib/service-terms";
 
 export type BookingStatus = (typeof BOOKING_STATUSES)[number];
 
@@ -73,4 +74,21 @@ export const VEHICLE_LABEL: Record<string, string> = {
   suv: "SUV",
   vip: "VIP",
   van: "Van",
+};
+
+/**
+ * Cancellation reasons in the operator's words, and in the refund policy's.
+ *
+ * The wording deliberately names the consequence — "no charge", "50% due" —
+ * because the person choosing from this list is often the one who will then
+ * decide a refund, and making them recall the policy from memory is how the
+ * wrong amount gets returned.
+ */
+export const CANCELLATION_REASON_LABEL: Record<CancellationReason, string> = {
+  customer_early: `Customer cancelled, more than ${FREE_CANCEL_HOURS}h before pickup — no charge`,
+  customer_late: `Customer cancelled, less than ${FREE_CANCEL_HOURS}h before pickup — ${LATE_CANCEL_PERCENT}% due`,
+  customer_no_show: "Customer did not show — full fare due",
+  we_cancelled: "We cancelled — refunded in full",
+  duplicate: "Duplicate or test booking",
+  other: "Something else",
 };
