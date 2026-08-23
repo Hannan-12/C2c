@@ -52,3 +52,22 @@ export function guessCity(...addresses: (string | null | undefined)[]): Emirate 
 
   return null;
 }
+
+/**
+ * URL-safe forms of the emirate names.
+ *
+ * The stored value uses an underscore because it is a database enum;
+ * /admin/drivers/abu-dhabi is what belongs in an address bar. Kept as an
+ * explicit pair rather than a replace() in both directions, so a third emirate
+ * added later cannot round-trip wrongly.
+ */
+export const EMIRATE_SLUG: Record<Emirate, string> = {
+  dubai: "dubai",
+  abu_dhabi: "abu-dhabi",
+  sharjah: "sharjah",
+};
+
+export function emirateFromSlug(slug: string): Emirate | null {
+  const found = EMIRATES.find((e) => EMIRATE_SLUG[e] === slug);
+  return found ?? null;
+}

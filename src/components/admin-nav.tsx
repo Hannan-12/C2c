@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const NAV = [
+const NAV: { href: string; label: string; exact: boolean; section?: string }[] = [
   { href: "/admin", label: "Bookings", exact: true },
-  { href: "/admin/drivers", label: "Drivers", exact: false },
+  { href: "/admin/drivers/dubai", label: "Drivers", exact: false, section: "/admin/drivers" },
   { href: "/admin/pricing", label: "Pricing", exact: false },
   { href: "/admin/finance", label: "Money", exact: false },
   { href: "/admin/staff", label: "Staff", exact: false },
@@ -17,9 +17,11 @@ export function AdminNav() {
   return (
     <nav aria-label="Admin" className="flex flex-col gap-0.5">
       {NAV.map((item) => {
+        // `section` exists for links whose landing page is one of several —
+        // Drivers points at Dubai but must stay lit on Sharjah too.
         const active = item.exact
           ? pathname === item.href
-          : pathname.startsWith(item.href);
+          : pathname.startsWith(item.section ?? item.href);
         return (
           <Link
             key={item.href}

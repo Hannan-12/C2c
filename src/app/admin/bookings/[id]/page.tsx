@@ -12,7 +12,7 @@ import {
 } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin-session";
 import { fareWasAgreed, payableFare } from "@/lib/fare";
-import { EMIRATES, EMIRATE_LABEL, guessCity } from "@/lib/emirates";
+import { EMIRATES, EMIRATE_LABEL, EMIRATE_SLUG, guessCity } from "@/lib/emirates";
 import { availabilitySlip, jobSlip } from "@/lib/slips";
 import { CopyButton } from "@/components/copy-button";
 import { BRAND } from "@/lib/seo";
@@ -115,19 +115,16 @@ export default async function BookingDetailPage({
     .orderBy(asc(drivers.name));
 
   /**
-   * The booking's own emirate first, then the others. Nothing is excluded — an
-   * airport run routinely ends in another emirate, and a driver already
-   * heading that way is often the right answer — but the people nearest the
-   * pickup should not be somewhere down a list.
+   * Only the drivers based where the customer is picked up.
+   *
+   * A restriction, not an ordering. The trade is deliberate: an airport run
+   * that ends in another emirate can no longer be given to a driver already
+   * heading that way, and in exchange nobody is ever assigned a pickup an hour
+   * from where they are. Whoever is nearest the customer wins.
    */
-  const driverGroups = [
-    ...(booking.city ? [booking.city] : []),
-    ...EMIRATES.filter((e) => e !== booking.city),
-  ].map((emirate) => ({
-    emirate,
-    label: EMIRATE_LABEL[emirate],
-    drivers: activeDrivers.filter((d) => d.city === emirate),
-  }));
+  const assignableDrivers = booking.city
+    ? activeDrivers.filter((d) => d.city === booking.city)
+    : [];
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   const trackingUrl = `${siteUrl}/track/${booking.referenceCode}`;
@@ -742,13 +739,23 @@ export default async function BookingDetailPage({
                   </form>
                 </div>
               </>
-            ) : activeDrivers.length === 0 ? (
+            ) : !booking.city ? (
+              <p className="text-sm text-ink-muted">
+                Set the pickup emirate under{" "}
+                <strong>Driver slips</strong> above, then its drivers appear
+                here.
+              </p>
+            ) : assignableDrivers.length === 0 ? (
               <p className="text-sm text-ink-muted mt-3">
-                No active drivers yet.{" "}
-                <Link href="/admin/drivers" className="underline hover:text-ink">
-                  Add one first
+                No active drivers in{" "}
+                {booking.city ? EMIRATE_LABEL[booking.city] : "this emirate"}.{" "}
+                <Link
+                  href={`/admin/drivers/${booking.city ? EMIRATE_SLUG[booking.city] : "dubai"}`}
+                  className="underline hover:text-ink"
+                >
+                  Add one there
                 </Link>
-                .
+                , or change the pickup emirate above if it is wrong.
               </p>
             ) : (
               <form action={assignDriver} className="mt-4">
@@ -760,18 +767,12 @@ export default async function BookingDetailPage({
                       Driver
                     </label>
                     <select id="driverId" name="driverId" required className="field-input">
-                      {driverGroups.map((group) =>
-                        group.drivers.length === 0 ? null : (
-                          <optgroup key={group.emirate} label={group.label}>
-                            {group.drivers.map((driver) => (
-                              <option key={driver.id} value={driver.id}>
-                                {driver.name}
-                                {driver.vehicleAssigned ? ` — ${driver.vehicleAssigned}` : ""}
-                              </option>
-                            ))}
-                          </optgroup>
-                        ),
-                      )}
+                      {assignableDrivers.map((driver) => (
+                        <option key={driver.id} value={driver.id}>
+                          {driver.name}
+                          {driver.vehicleAssigned ? ` — ${driver.vehicleAssigned}` : ""}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
