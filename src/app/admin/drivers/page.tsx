@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
-import { asc, desc } from "drizzle-orm";
+import { asc, count, desc } from "drizzle-orm";
 import { db } from "@/db";
-import { drivers } from "@/db/schema";
+import { bookingAssignments, drivers } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin-session";
 import { whatsappLink } from "@/lib/format";
-import { createDriver, toggleDriverActive } from "../actions";
+import {
+  createDriver,
+  deleteDriver,
+  toggleDriverActive,
+  updateDriver,
+} from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +25,19 @@ export default async function DriversPage() {
     .select()
     .from(drivers)
     .orderBy(desc(drivers.active), asc(drivers.name));
+
+  /**
+   * How many trips each driver has. A driver with history cannot be deleted —
+   * the assignments reference them and the payout figures are calculated
+   * through them — so the button is not offered rather than offered and
+   * refused.
+   */
+  const tripCounts = await db
+    .select({ driverId: bookingAssignments.driverId, trips: count() })
+    .from(bookingAssignments)
+    .groupBy(bookingAssignments.driverId);
+
+  const trips = new Map(tripCounts.map((t) => [t.driverId, t.trips]));
 
   return (
     <>
@@ -41,11 +59,8 @@ export default async function DriversPage() {
             <table className="w-full text-sm min-w-130">
               <caption className="sr-only">Drivers</caption>
               <thead>
-                <tr className="text-[11px] uppercase tracking-widest text-ink-faint border-b border-line">
-                  <th scope="col" className="text-left font-medium px-5 py-3">Name</th>
-                  <th scope="col" className="text-left font-medium px-4 py-3">WhatsApp</th>
-                  <th scope="col" className="text-left font-medium px-4 py-3">Vehicle</th>
-                  <th scope="col" className="text-right font-medium px-5 py-3">Status</th>
+                <tr className="sr-only">
+                  <th scope="col">Driver</th>
                 </tr>
               </thead>
               <tbody>
@@ -54,42 +69,117 @@ export default async function DriversPage() {
                     key={driver.id}
                     className="border-b border-line last:border-0 hover:bg-field/60"
                   >
-                    <td className="px-5 py-3.5 font-medium">{driver.name}</td>
-                    <td className="px-4 py-3.5">
-                      <a
-                        href={whatsappLink(
-                          driver.whatsappNumber,
-                          `Hi ${driver.name}, are you available for a job?`,
-                        )}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-mono text-[13px] hover:text-accent-strong"
+                    {/*
+                      Editable in place. A mistyped number used to be permanent,
+                      and the workaround — a second driver with the same name —
+                      split their trips and their payout across two records.
+                    */}
+                    <td colSpan={4} className="px-5 py-3.5">
+                      <form
+                        action={updateDriver}
+                        className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end"
                       >
-                        +{driver.whatsappNumber}
-                      </a>
-                    </td>
-                    <td className="px-4 py-3.5 text-ink-muted">
-                      {driver.vehicleAssigned ?? "—"}
-                    </td>
-                    <td className="px-5 py-3.5 text-right">
-                      <form action={toggleDriverActive} className="inline">
                         <input type="hidden" name="driverId" value={driver.id} />
-                        <input
-                          type="hidden"
-                          name="active"
-                          value={driver.active ? "false" : "true"}
-                        />
-                        <button
-                          type="submit"
-                          className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
-                            driver.active
-                              ? "border-accent bg-accent-soft text-accent-strong hover:bg-accent/20"
-                              : "border-line bg-field text-ink-faint hover:border-ink-faint"
-                          }`}
-                        >
-                          {driver.active ? "Active" : "Inactive"}
+
+                        <div>
+                          <label className="field-label" htmlFor={`name-${driver.id}`}>
+                            Name
+                          </label>
+                          <input
+                            id={`name-${driver.id}`}
+                            name="name"
+                            required
+                            defaultValue={driver.name}
+                            className="field-input"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="field-label" htmlFor={`wa-${driver.id}`}>
+                            WhatsApp
+                          </label>
+                          <input
+                            id={`wa-${driver.id}`}
+                            name="whatsappNumber"
+                            required
+                            defaultValue={driver.whatsappNumber}
+                            className="field-input font-mono text-[13px]"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="field-label" htmlFor={`veh-${driver.id}`}>
+                            Vehicle
+                          </label>
+                          <input
+                            id={`veh-${driver.id}`}
+                            name="vehicleAssigned"
+                            defaultValue={driver.vehicleAssigned ?? ""}
+                            placeholder="Optional"
+                            className="field-input"
+                          />
+                        </div>
+
+                        <button type="submit" className="btn-secondary sm:mb-0">
+                          Save
                         </button>
                       </form>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className="text-[11px] text-ink-faint">
+                          {trips.get(driver.id) ?? 0} trips
+                        </span>
+
+                        <a
+                          href={whatsappLink(
+                            driver.whatsappNumber,
+                            `Hi ${driver.name}, are you available for a job?`,
+                          )}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] font-semibold text-whatsapp hover:underline"
+                        >
+                          Message
+                        </a>
+
+                        <form action={toggleDriverActive} className="inline">
+                          <input type="hidden" name="driverId" value={driver.id} />
+                          <input
+                            type="hidden"
+                            name="active"
+                            value={driver.active ? "false" : "true"}
+                          />
+                          <button
+                            type="submit"
+                            className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                              driver.active
+                                ? "border-accent bg-accent-soft text-accent-strong hover:bg-accent/20"
+                                : "border-line bg-field text-ink-faint hover:border-ink-faint"
+                            }`}
+                          >
+                            {driver.active ? "Active" : "Inactive"}
+                          </button>
+                        </form>
+
+                        {/*
+                          Only for a driver who never drove. Anyone with trips
+                          behind them is deactivated instead, so the record of
+                          who drove those trips survives.
+                        */}
+                        {(trips.get(driver.id) ?? 0) === 0 && (
+                          <form action={deleteDriver} className="inline">
+                            <input type="hidden" name="driverId" value={driver.id} />
+                            <button
+                              type="submit"
+                              className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1
+                                         text-[11px] font-semibold text-red-700 hover:bg-red-100
+                                         transition-colors"
+                            >
+                              Remove
+                            </button>
+                          </form>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

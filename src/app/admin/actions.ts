@@ -768,3 +768,64 @@ export async function changeOwnPassword(formData: FormData) {
 
   revalidatePath("/admin/staff");
 }
+
+/**
+ * Corrects a driver's details in place.
+ *
+ * Until now a mistyped WhatsApp number was permanent, and the workaround was
+ * adding a second driver with the same name and deactivating the first — which
+ * then made the assignment history read as two people, and the payout figures
+ * split between them.
+ */
+export async function updateDriver(formData: FormData) {
+  await requireAdmin();
+
+  const driverId = String(formData.get("driverId") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const whatsapp = String(formData.get("whatsappNumber") ?? "").replace(/[\s\-()+]/g, "");
+  const vehicle = String(formData.get("vehicleAssigned") ?? "").trim();
+
+  if (!driverId) throw new Error("Driver is required");
+  if (!name) throw new Error("Driver name is required");
+  if (!/^\d{8,15}$/.test(whatsapp)) {
+    throw new Error("Enter a valid WhatsApp number in international format");
+  }
+
+  await db
+    .update(drivers)
+    .set({ name, whatsappNumber: whatsapp, vehicleAssigned: vehicle || null })
+    .where(eq(drivers.id, driverId));
+
+  revalidatePath("/admin/drivers");
+}
+
+/**
+ * Removes a driver who never drove.
+ *
+ * Only one who has never been assigned. A driver with trips behind them is
+ * deactivated instead: the assignment rows reference them, the payout history
+ * is calculated through them, and deleting would either orphan those bookings
+ * or take the record of who drove them with it. The foreign key would refuse
+ * anyway; refusing here means saying why.
+ */
+export async function deleteDriver(formData: FormData) {
+  await requireAdmin();
+
+  const driverId = String(formData.get("driverId") ?? "");
+  if (!driverId) throw new Error("Driver is required");
+
+  const [{ assignments }] = await db
+    .select({ assignments: count() })
+    .from(bookingAssignments)
+    .where(eq(bookingAssignments.driverId, driverId));
+
+  if (assignments > 0) {
+    throw new Error(
+      `This driver has ${assignments} ${assignments === 1 ? "trip" : "trips"} on record. Deactivate them instead — deleting would take the record of who drove those trips with it.`,
+    );
+  }
+
+  await db.delete(drivers).where(eq(drivers.id, driverId));
+
+  revalidatePath("/admin/drivers");
+}
