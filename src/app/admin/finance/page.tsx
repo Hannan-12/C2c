@@ -4,7 +4,7 @@ import { and, eq, gte, isNull, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { bookings, bookingAssignments, drivers } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin-session";
-import { formatFare, whatsappLink } from "@/lib/format";
+import { formatFare, formatPickup, whatsappLink } from "@/lib/format";
 import {
   COMMISSION_PERCENT,
   DRIVER_PERCENT,
@@ -60,6 +60,7 @@ export default async function FinancePage({ searchParams }: PageProps<"/admin/fi
       : "week";
 
   const from = since(period);
+  const focus = typeof params.driver === "string" ? params.driver : "";
 
   /**
    * Completed trips only, joined to whoever drove them. A booking with no
@@ -151,6 +152,19 @@ export default async function FinancePage({ searchParams }: PageProps<"/admin/fi
     byDriver.set(row.driverId, entry);
   }
 
+  /**
+   * The trips behind one driver's figure.
+   *
+   * Settling hands over a lump sum, and the question a driver asks is which
+   * trips it covers. Answering that from the bookings list means filtering by
+   * a driver the list cannot filter by, so it belongs here.
+   */
+  const focusTrips = focus
+    ? earned
+        .filter((r) => r.driverId === focus)
+        .sort((a, b) => b.pickupDatetime.getTime() - a.pickupDatetime.getTime())
+    : [];
+
   const drivers_ = [...byDriver.entries()].sort(
     (a, b) => Math.abs(b[1].outstanding) - Math.abs(a[1].outstanding),
   );
@@ -215,9 +229,19 @@ export default async function FinancePage({ searchParams }: PageProps<"/admin/fi
             <section key={driverId} className="card">
               <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 mb-3">
                 <h3 className="font-semibold">
-                  {d.name}
+                  <Link
+                    href={
+                      focus === driverId
+                        ? `/admin/finance?period=${period}`
+                        : `/admin/finance?period=${period}&driver=${driverId}`
+                    }
+                    className="hover:text-accent-strong"
+                  >
+                    {d.name}
+                  </Link>
                   <span className="ml-2 text-xs font-normal text-ink-faint">
-                    {d.trips} {d.trips === 1 ? "trip" : "trips"}
+                    {d.trips} {d.trips === 1 ? "trip" : "trips"} ·{" "}
+                    {focus === driverId ? "hide" : "show"} trips
                   </span>
                 </h3>
                 <p className="text-sm text-ink-muted">
@@ -227,6 +251,55 @@ export default async function FinancePage({ searchParams }: PageProps<"/admin/fi
                   commission
                 </p>
               </header>
+
+              {focus === driverId && (
+                <div className="mb-4 overflow-x-auto rounded-field border border-line">
+                  <table className="w-full text-sm min-w-130">
+                    <caption className="sr-only">Trips for {d.name}</caption>
+                    <thead>
+                      <tr className="text-[11px] uppercase tracking-widest text-ink-faint border-b border-line">
+                        <th scope="col" className="text-left font-medium px-4 py-2.5">Trip</th>
+                        <th scope="col" className="text-left font-medium px-3 py-2.5">Paid</th>
+                        <th scope="col" className="text-right font-medium px-3 py-2.5">Fare</th>
+                        <th scope="col" className="text-right font-medium px-4 py-2.5">Driver</th>
+                        <th scope="col" className="text-right font-medium px-4 py-2.5">Settled</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {focusTrips.map((trip) => {
+                        const split = splitFare(trip);
+                        return (
+                          <tr key={trip.bookingId} className="border-b border-line last:border-0">
+                            <td className="px-4 py-2.5">
+                              <Link
+                                href={`/admin/bookings/${trip.bookingId}`}
+                                className="font-mono text-[13px] hover:text-accent-strong"
+                              >
+                                {trip.referenceCode}
+                              </Link>
+                              <span className="block text-[11px] text-ink-faint">
+                                {formatPickup(trip.pickupDatetime)}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5 text-ink-muted">{trip.paymentMethod}</td>
+                            <td className="tnum px-3 py-2.5 text-right font-mono">
+                              {formatFare(split.net)}
+                            </td>
+                            <td className="tnum px-4 py-2.5 text-right font-mono">
+                              {formatFare(split.driver)}
+                            </td>
+                            <td className="px-4 py-2.5 text-right text-[11px] text-ink-faint">
+                              {trip.settledAt
+                                ? `${formatFare(Number(trip.settledAmount ?? 0))} on ${formatPickup(trip.settledAt)}`
+                                : "—"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
               {d.unsettledTrips === 0 ? (
                 <p className="text-sm text-ink-faint">
