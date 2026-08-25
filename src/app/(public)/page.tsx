@@ -4,6 +4,23 @@ import { RouteBoard } from "@/components/route-board";
 import { LocalBusinessSchema } from "@/components/structured-data";
 import { DestinationSlider } from "@/components/destination-slider";
 import { FleetTable } from "@/components/fleet-table";
+import { canonical } from "@/lib/seo";
+
+/**
+ * The homepage declared no canonical at all, inheriting a root layout that
+ * sets none — so with www serving an identical copy, nothing on the page said
+ * which of the two was the real one. Every other page carries a canonical
+ * through pageMetadata; this one was missed precisely because it needs no
+ * title or description of its own.
+ *
+ * Only the canonical is set here. Title, description and Open Graph are
+ * deliberately left to the root layout, which already writes the homepage's
+ * versions of them — repeating them would create a second place to keep in
+ * step.
+ */
+export const metadata = {
+  alternates: { canonical: canonical("/") },
+};
 
 /** Pricing changes rarely; an hour-old board is fine and keeps the page fast. */
 export const revalidate = 3600;

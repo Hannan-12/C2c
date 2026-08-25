@@ -1,11 +1,20 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { normaliseReferenceCode } from "@/lib/reference-code";
+import { canonical } from "@/lib/seo";
 
+/**
+ * Hand-written rather than built by pageMetadata, and so it never gained a
+ * canonical. The lookup form is a real landing page — people search for it —
+ * so it needs one; the per-booking pages under /track/[code] do not, and are
+ * kept out of the index by robots.txt because they show customer details to
+ * anyone holding the link.
+ */
 export const metadata: Metadata = {
   title: "Track your booking",
   description:
     "Enter your booking reference code to see your ride status and driver details.",
+  alternates: { canonical: canonical("/track") },
 };
 
 export default async function TrackLookupPage({
