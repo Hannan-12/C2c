@@ -23,12 +23,27 @@ const ROUTES: { path: string; priority: number; changeFrequency: MetadataRoute.S
   { path: "/track", priority: 0.4, changeFrequency: "yearly" },
 ];
 
+/**
+ * No lastModified, deliberately.
+ *
+ * It used to be `new Date()` evaluated per request, so every URL claimed to
+ * have changed the instant the sitemap was fetched — all twelve of them, every
+ * time. Google's guidance is that it ignores lastmod unless the value is
+ * consistently accurate, and a sitemap where the whole site changes every
+ * second is the clearest possible signal that ours was not.
+ *
+ * That matters more than it sounds for a site sitting in "Discovered —
+ * currently not indexed": lastmod is one of the few hints Google uses to
+ * decide which known URLs are worth fetching next, and a dishonest one is
+ * worse than none, because it teaches the crawler to disregard the file.
+ *
+ * Omitted rather than hand-maintained. A date typed into this list would be
+ * accurate on the day it was written and wrong within a month, which is how
+ * the field became untrustworthy in the first place.
+ */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date();
-
   return ROUTES.map((route) => ({
     url: canonical(route.path),
-    lastModified,
     changeFrequency: route.changeFrequency,
     priority: route.priority,
   }));
