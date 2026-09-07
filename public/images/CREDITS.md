@@ -7,6 +7,16 @@ or the files swapped for the client's own photography.
 Replacing an image is a file swap — keep the same filename and nothing in the
 code changes.
 
+## Homepage hero
+
+| File | Photographer | Source |
+|---|---|---|
+| hero-chauffeur-suv.jpg | Pexels contributor | pexels.com/photo/36377051 |
+
+Pexels licence, free for commercial use without attribution; recorded here so
+it can be honoured or swapped for the client's own photography. Replacing it is
+a file swap under the same name — nothing in the code changes.
+
 ## Service pages
 
 | File | Photographer | Source |

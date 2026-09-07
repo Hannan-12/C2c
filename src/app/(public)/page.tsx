@@ -59,22 +59,25 @@ export default function HomePage() {
       <LocalBusinessSchema />
 
       {/*
-        A real photograph behind the hero, in place of the route board that used
-        to sit beside it.
+        The hero is a full-bleed band, not a page section with a picture behind
+        it.
 
-        Bled past the page padding with negative insets so it reaches the edges
-        of the viewport rather than sitting in a box — a hero image with a
-        margin reads as an illustration of the page instead of the page itself.
+        Negative margins cancel the page's own padding on all four relevant
+        sides, so the photograph starts at the very top of the content area and
+        runs to both edges; the padding is then put back on the inner container
+        so the text keeps its alignment with everything below. An image inset
+        from the edges reads as an illustration of the page — this one has to
+        read as the page.
 
-        Deliberately not a <div> with a background-image: next/image gives the
-        responsive sizes and lazy behaviour that keep a 1600px photograph off a
-        phone's data plan, and `priority` because this is the largest element
-        on first paint and the one that decides the page's LCP.
+        next/image rather than a CSS background: it produces the responsive
+        variants that keep a 2400px photograph off a phone's data plan, and
+        `priority` because this is the largest element on first paint and the
+        one that decides the page's LCP.
       */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[34rem] -z-10">
-        <div className="relative h-full -mx-6 sm:-mx-10 lg:-mx-14">
+      <section className="relative -mx-6 sm:-mx-10 lg:-mx-14 -mt-10 lg:-mt-14 mb-4">
+        <div className="relative min-h-[30rem] lg:min-h-[38rem] flex items-center overflow-hidden">
           <Image
-            src="/images/destinations/downtown-dubai.jpg"
+            src="/images/hero-chauffeur-suv.jpg"
             alt=""
             fill
             priority
@@ -83,55 +86,81 @@ export default function HomePage() {
           />
 
           {/*
-            Two layers rather than one. The first is a flat wash that guarantees
-            contrast for the eyebrow and headline wherever the photograph
-            happens to be bright; the second fades to the page's own background
-            so the image ends without a visible seam against the content below.
+            A dark scrim with light text, rather than a pale wash with dark
+            text.
+
+            The pale version was the obvious first move and it was wrong: a
+            light wash over a photograph does not dim it, it greys it — the
+            blacks lift, the colour drains, and the picture reads as faded
+            rather than as a background. Darkening does the opposite. It holds
+            the blacks, keeps the car and the uniform saturated, and gives light
+            text far more contrast than dark text ever had, so less coverage is
+            needed to stay readable.
+
+            Still weighted to where the words are: heaviest on the left where
+            the headline sits, thinning towards the right where the car is.
+            Vertical below `sm`, because on a phone the text spans most of the
+            width and a left-weighted wash would strand the end of every line
+            on bare photograph.
           */}
-          <div className="absolute inset-0 bg-canvas/72" />
-          <div className="absolute inset-0 bg-gradient-to-b from-canvas/30 via-canvas/60 to-canvas" />
-        </div>
-      </div>
-
-      <section className="relative max-w-2xl pt-4 pb-10 lg:pt-10 lg:pb-16">
-        <div className="max-w-xl">
-          <p
-            className="animate-rise text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint mb-6"
-            style={{ animationDelay: "40ms" }}
-          >
-            Chauffeur service · United Arab Emirates
-          </p>
-
-          <h1
-            className="animate-rise display text-[2.75rem] sm:text-6xl leading-[0.95] mb-6"
-            style={{ animationDelay: "120ms" }}
-          >
-            Booked by you.
-            <br />
-            Confirmed by
-            <br />
-            <span className="text-accent-strong">a person.</span>
-          </h1>
-
-          <p
-            className="animate-rise text-ink-muted text-lg leading-relaxed mb-8"
-            style={{ animationDelay: "220ms" }}
-          >
-            No dispatch algorithm deciding who turns up. Send us your route and
-            someone confirms the driver, the car and the fare with you directly —
-            usually within the hour.
-          </p>
-
           <div
-            className="animate-rise flex flex-wrap gap-3"
-            style={{ animationDelay: "320ms" }}
-          >
-            <Link href="/book" className="btn-primary">
-              Book a ride
-            </Link>
-            <Link href="/track" className="btn-secondary">
-              Track a booking
-            </Link>
+            className="absolute inset-0 bg-gradient-to-b from-dock/88 via-dock/72 to-dock/60
+                       sm:bg-gradient-to-r sm:from-dock/90 sm:via-dock/60 sm:to-dock/15"
+          />
+
+          {/* A short fade at the very bottom so the band meets the page without a hard line. */}
+          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-canvas" />
+
+          <div className="relative w-full px-6 sm:px-10 lg:px-14 py-14">
+            <div className="max-w-xl">
+              <p
+                className="animate-rise text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-inverse/70 mb-6"
+                style={{ animationDelay: "40ms" }}
+              >
+                Chauffeur service · United Arab Emirates
+              </p>
+
+              <h1
+                className="animate-rise display text-[2.75rem] sm:text-6xl leading-[0.95] mb-6 text-ink-inverse"
+                style={{ animationDelay: "120ms" }}
+              >
+                Booked by you.
+                <br />
+                Confirmed by
+                <br />
+                <span className="text-accent">a person.</span>
+              </h1>
+
+              <p
+                className="animate-rise text-ink-inverse/85 text-lg leading-relaxed mb-8"
+                style={{ animationDelay: "220ms" }}
+              >
+                No dispatch algorithm deciding who turns up. Send us your route
+                and someone confirms the driver, the car and the fare with you
+                directly — usually within the hour.
+              </p>
+
+              <div
+                className="animate-rise flex flex-wrap gap-3"
+                style={{ animationDelay: "320ms" }}
+              >
+                <Link href="/book" className="btn-primary">
+                  Book a ride
+                </Link>
+                {/*
+                  Not btn-secondary: that outline is drawn for the light page
+                  background and disappears on a dark photograph.
+                */}
+                <Link
+                  href="/track"
+                  className="rounded-field border border-ink-inverse/35 bg-ink-inverse/10 px-5 py-3
+                             text-sm font-semibold text-ink-inverse backdrop-blur-sm
+                             hover:bg-ink-inverse/20 transition-colors"
+                >
+                  Track a booking
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
