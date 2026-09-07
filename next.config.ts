@@ -53,6 +53,17 @@ const nextConfig: NextConfig = {
         destination: "/",
         permanent: true,
       },
+      /**
+       * The singular spelling, which 404d. Nothing ever linked to it, but it
+       * is the obvious thing to type or mis-link, and a 404 on a URL a
+       * customer reached by guessing the singular of a real page is a dead end
+       * for no reason. Same destination and same permanence as the plural.
+       */
+      {
+        source: "/car-rental",
+        destination: "/",
+        permanent: true,
+      },
     ];
   },
 };
