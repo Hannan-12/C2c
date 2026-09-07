@@ -23,7 +23,7 @@ import { REFUND_BANK_DAYS_LABEL } from "@/lib/service-terms";
 const outDir = process.argv[2] ?? tmpdir();
 
 const sample = {
-  referenceCode: "C2C-7K4M2XQP",
+  referenceCode: "ROC-7K4M2XQP",
   serviceType: "airport" as const,
   customerName: 'Aisha "AJ" O\'Brien & Co <script>',
   customerEmail: "aisha@example.com",

@@ -117,7 +117,8 @@ export const bookings = mysqlTable(
     id: char("id", { length: 36 }).primaryKey(),
 
     /**
-     * Public-facing code, e.g. C2C-7K4M2XQP.
+     * Public-facing code, e.g. ROC-7K4M2XQP. Older rows carry a C2C-
+     * prefix from before the rename and stay valid — see lib/reference-code.
      * Long and random by design — the tracking page is unauthenticated and
      * returns customer PII, so a short sequential code would let the whole
      * customer list be enumerated. See docs Section 5.1.

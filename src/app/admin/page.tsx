@@ -266,7 +266,7 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
             name="q"
             type="search"
             defaultValue={q}
-            placeholder="C2C-7K4M2XQP · Aisha · 058 965 5634"
+            placeholder="ROC-7K4M2XQP · Aisha · 058 965 5634"
             className="field-input"
           />
         </div>

@@ -36,7 +36,7 @@ export default async function TrackLookupPage({
         <h1 className="animate-rise display text-3xl sm:text-4xl mb-2">Track your booking</h1>
         <p className="text-ink-muted mb-8">
           Enter the reference code from your confirmation message — it looks like{" "}
-          <span className="font-mono text-ink">C2C-7K4M2XQP</span>.
+          <span className="font-mono text-ink">ROC-7K4M2XQP</span>.
         </p>
 
         <form action={lookup} className="card animate-rise">
@@ -49,7 +49,7 @@ export default async function TrackLookupPage({
             required
             autoComplete="off"
             spellCheck={false}
-            placeholder="C2C-7K4M2XQP"
+            placeholder="ROC-7K4M2XQP"
             aria-describedby={notFound ? "reference-error" : undefined}
             className="field-input font-mono uppercase"
           />

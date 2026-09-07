@@ -11,7 +11,7 @@ import type { BookingStatus } from "@/lib/booking-status";
 import { requireAdmin } from "@/lib/admin-session";
 import { splitFare } from "@/lib/commission";
 import { phoneSuffix } from "@/lib/search";
-import { normaliseReferenceCode } from "@/lib/reference-code";
+import { referenceBody, normaliseReferenceCode } from "@/lib/reference-code";
 
 /**
  * Bookings as a spreadsheet.
@@ -82,7 +82,9 @@ export async function GET(req: Request) {
     const suffix = phoneSuffix(q);
     filters.push(
       or(
-        like(bookings.referenceCode, `%${normaliseReferenceCode(q).replace(/^C2C-/, "")}%`),
+        // Matched on the body, so a pasted code finds its booking whichever
+        // prefix it carries — the old one or the current one.
+        like(bookings.referenceCode, `%${referenceBody(q)}%`),
         like(bookings.customerName, `%${q}%`),
         ...(suffix ? [like(bookings.customerWhatsapp, `%${suffix}`)] : []),
       )!,
