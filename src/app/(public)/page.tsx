@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { RouteBoard } from "@/components/route-board";
+import Image from "next/image";
 import { LocalBusinessSchema } from "@/components/structured-data";
 import { DestinationSlider } from "@/components/destination-slider";
 import { FleetTable } from "@/components/fleet-table";
@@ -58,14 +58,42 @@ export default function HomePage() {
     <div className="relative overflow-x-clip px-6 sm:px-10 lg:px-14 py-10 lg:py-14">
       <LocalBusinessSchema />
 
-      {/* Ambient warmth behind the hero. Purely decorative, never interactive. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-40 -left-32 size-152
-                   rounded-full bg-accent/12 blur-3xl animate-drift"
-      />
+      {/*
+        A real photograph behind the hero, in place of the route board that used
+        to sit beside it.
 
-      <section className="relative grid xl:grid-cols-[minmax(0,1fr)_400px] gap-10 xl:gap-14 items-start">
+        Bled past the page padding with negative insets so it reaches the edges
+        of the viewport rather than sitting in a box — a hero image with a
+        margin reads as an illustration of the page instead of the page itself.
+
+        Deliberately not a <div> with a background-image: next/image gives the
+        responsive sizes and lazy behaviour that keep a 1600px photograph off a
+        phone's data plan, and `priority` because this is the largest element
+        on first paint and the one that decides the page's LCP.
+      */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[34rem] -z-10">
+        <div className="relative h-full -mx-6 sm:-mx-10 lg:-mx-14">
+          <Image
+            src="/images/destinations/downtown-dubai.jpg"
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center"
+          />
+
+          {/*
+            Two layers rather than one. The first is a flat wash that guarantees
+            contrast for the eyebrow and headline wherever the photograph
+            happens to be bright; the second fades to the page's own background
+            so the image ends without a visible seam against the content below.
+          */}
+          <div className="absolute inset-0 bg-canvas/72" />
+          <div className="absolute inset-0 bg-gradient-to-b from-canvas/30 via-canvas/60 to-canvas" />
+        </div>
+      </div>
+
+      <section className="relative max-w-2xl pt-4 pb-10 lg:pt-10 lg:pb-16">
         <div className="max-w-xl">
           <p
             className="animate-rise text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint mb-6"
@@ -106,19 +134,9 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
-
-        <div className="animate-rise" style={{ animationDelay: "420ms" }}>
-          <Suspense
-            fallback={
-              <div className="rounded-card bg-dock h-105 animate-pulse" aria-hidden />
-            }
-          >
-            <RouteBoard />
-          </Suspense>
-        </div>
       </section>
 
-      {/* Ruled index rather than cards — different rhythm from the board above. */}
+      {/* Ruled index rather than cards — different rhythm from the hero above. */}
       <section className="reveal mt-20" aria-labelledby="services-heading">
         <h2 id="services-heading" className="display text-2xl sm:text-3xl mb-1.5">
           What we run
