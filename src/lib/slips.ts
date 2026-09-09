@@ -19,6 +19,7 @@ type SlipBooking = Pick<
   | "serviceType"
   | "pickupLocation"
   | "dropoffLocation"
+  | "stops"
   | "pickupDatetime"
   | "durationHours"
   | "vehicleCategory"
@@ -46,6 +47,11 @@ function tripLines(booking: SlipBooking): string[] {
     `From: ${booking.pickupLocation}`,
   ];
 
+  if (booking.stops && booking.stops.length > 0) {
+    booking.stops.forEach((stop, i) => {
+      lines.push(`Stop ${i + 1}: ${stop.address}`);
+    });
+  }
   if (booking.dropoffLocation) lines.push(`To: ${booking.dropoffLocation}`);
   if (booking.durationHours) lines.push(`Duration: ${booking.durationHours} hours`);
 
@@ -152,6 +158,11 @@ export function slipFields(
     { label: "From", value: booking.pickupLocation },
   ];
 
+  if (booking.stops && booking.stops.length > 0) {
+    booking.stops.forEach((stop, i) => {
+      fields.push({ label: `Stop ${i + 1}`, value: stop.address });
+    });
+  }
   if (booking.dropoffLocation) fields.push({ label: "To", value: booking.dropoffLocation });
   if (booking.durationHours) {
     fields.push({ label: "Duration", value: `${booking.durationHours} hours` });

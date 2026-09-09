@@ -219,6 +219,22 @@ export default async function BookingDetailPage({
             <h2 className="font-semibold mb-4">Trip</h2>
             <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3.5 text-sm">
               <Detail label="Pickup" value={booking.pickupLocation} />
+              {booking.stops && booking.stops.length > 0 && (
+                <div className="sm:col-span-2">
+                  <dt className="text-ink-faint text-xs mb-0.5">
+                    Stops ({booking.stops.length})
+                  </dt>
+                  <dd>
+                    <ol className="flex flex-col gap-0.5">
+                      {booking.stops.map((stop, i) => (
+                        <li key={i} className="font-medium">
+                          {i + 1}. {stop.address}
+                        </li>
+                      ))}
+                    </ol>
+                  </dd>
+                </div>
+              )}
               <Detail label="Dropoff" value={booking.dropoffLocation ?? undefined} />
               <Detail label="Pickup time" value={formatPickup(booking.pickupDatetime)} />
               <Detail
@@ -232,7 +248,11 @@ export default async function BookingDetailPage({
                 value={`${booking.passengerCount} · ${booking.luggageCount} bags`}
               />
               <Detail
-                label="Distance"
+                label={
+                  booking.stops && booking.stops.length > 0
+                    ? "Distance (via stops)"
+                    : "Distance"
+                }
                 value={
                   booking.distanceKm
                     ? [
