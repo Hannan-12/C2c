@@ -15,10 +15,17 @@ export function ServicePhoto({
   src,
   alt,
   priority = false,
+  animated = false,
 }: {
   src: string;
   alt: string;
   priority?: boolean;
+  /**
+   * Adds a slow, continuous zoom to the photograph — opt-in and off by
+   * default, so existing service pages keep their static crop unless a page
+   * asks for the more cinematic treatment.
+   */
+  animated?: boolean;
 }) {
   return (
     <figure className="reveal mt-16 rounded-card overflow-hidden bg-dock relative">
@@ -31,7 +38,7 @@ export function ServicePhoto({
           fill
           priority={priority}
           sizes="(max-width: 1024px) 100vw, 60vw"
-          className="object-cover"
+          className={`object-cover ${animated ? "animate-zoom-slow" : ""}`}
         />
         {/* A wash toward the dock colour, so the photograph sits inside the
             palette instead of fighting it. */}

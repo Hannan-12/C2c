@@ -1,11 +1,6 @@
 import { ServicePage, type ServicePageContent } from "@/components/service-page";
 import { ServicePhoto } from "@/components/service-photo";
-import { getPricedRoutes } from "@/lib/routes-catalogue";
-import { formatFare } from "@/lib/format";
 import { pageMetadata } from "@/lib/seo";
-
-/** Pricing changes rarely; an hour-old board matches the homepage. */
-export const revalidate = 3600;
 
 export const metadata = pageMetadata({
   title: "Chauffeur Rides",
@@ -14,8 +9,6 @@ export const metadata = pageMetadata({
   path: "/rides",
 });
 
-// TODO(client): fleet detail and any route-specific pricing to replace the
-// starting fares below, which come from the seeded vehicle_pricing table.
 const content: ServicePageContent = {
   eyebrow: "Point to point · Dubai, Abu Dhabi, Sharjah",
   title: (
@@ -72,7 +65,14 @@ const content: ServicePageContent = {
         "Message us on WhatsApp using your reference code. Because a person handles every booking, changes are a conversation rather than a form.",
     },
   ],
-  art: <ServicePhoto src="/images/rides.jpg" alt="Dubai skyline at dusk, seen across the city" priority />,
+  art: (
+    <ServicePhoto
+      src="/images/rides.jpg"
+      alt="Dubai skyline at dusk, seen across the city"
+      priority
+      animated
+    />
+  ),
   schema: {
     name: "Chauffeur Rides",
     description: "Point-to-point chauffeur rides with a fixed fare agreed before travel.",
@@ -81,28 +81,6 @@ const content: ServicePageContent = {
   bookHref: "/book?serviceType=ride",
 };
 
-export default async function RidesPage() {
-  // Same source as the homepage route board, so a fare can never be quoted
-  // differently on two pages of the same site.
-  const routes = await getPricedRoutes();
-
-  return (
-    <ServicePage
-      content={{
-        ...content,
-        table: {
-          heading: "Routes people ask for",
-          note: "Starting fares for the Comfort class. Your own route is priced live before you submit.",
-          caption: "Popular routes with distance, drive time and starting fare",
-          columns: ["Route", "Distance", "Drive", "From"],
-          rows: routes.map((route) => [
-            `${route.from} → ${route.to}`,
-            `${route.distanceKm} km`,
-            `${route.durationMin} min`,
-            formatFare(route.fromFare, route.currency),
-          ]),
-        },
-      }}
-    />
-  );
+export default function RidesPage() {
+  return <ServicePage content={content} />;
 }

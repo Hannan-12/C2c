@@ -106,6 +106,17 @@ html {
   }
 }
 
+/* Slow cinematic zoom for a hero/banner photograph — a "Ken Burns" drift
+   rather than a static crop. Transform-only, so it never touches layout. */
+@keyframes zoom-slow {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.09);
+  }
+}
+
 @keyframes pop {
   0% {
     transform: scale(0.94);
@@ -172,6 +183,12 @@ html {
    */
   .animate-marquee {
     animation: marquee 32s linear infinite;
+  }
+
+  /* Opt-in per photo: a slow, continuous zoom that reads as premium rather
+     than static. Alternates so it never has to snap back to the start. */
+  .animate-zoom-slow {
+    animation: zoom-slow 16s ease-in-out infinite alternate;
   }
 
   .marquee-track:hover .animate-marquee,
