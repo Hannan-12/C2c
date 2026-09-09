@@ -3,6 +3,7 @@ import { LegalList, LegalPage } from "@/components/legal-page";
 import { BRAND, BUSINESS, pageMetadata } from "@/lib/seo";
 import {
   FREE_CANCEL_HOURS,
+  FREE_CANCEL_HOURS_UNIT,
   LATE_CANCEL_PERCENT,
   REFUND_BANK_DAYS_LABEL,
   REFUND_REVIEW_DAYS_LABEL,
@@ -104,11 +105,11 @@ export default function RefundsPage() {
               <LegalList
                 items={[
                   <>
-                    <strong>More than {FREE_CANCEL_HOURS} hours before pickup</strong> —
+                    <strong>More than {FREE_CANCEL_HOURS} {FREE_CANCEL_HOURS_UNIT} before pickup</strong> —
                     no charge. Anything paid is refunded in full.
                   </>,
                   <>
-                    <strong>Less than {FREE_CANCEL_HOURS} hours before pickup</strong> —{" "}
+                    <strong>Less than {FREE_CANCEL_HOURS} {FREE_CANCEL_HOURS_UNIT} before pickup</strong> —{" "}
                     {LATE_CANCEL_PERCENT}% of the fare is due. If you have paid
                     in full, the remaining {100 - LATE_CANCEL_PERCENT}% is
                     refunded. If you have paid nothing, we invoice the{" "}

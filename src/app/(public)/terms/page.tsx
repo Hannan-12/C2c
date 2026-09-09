@@ -3,6 +3,7 @@ import { LegalList, LegalPage } from "@/components/legal-page";
 import { BRAND, BUSINESS, pageMetadata } from "@/lib/seo";
 import {
   FREE_CANCEL_HOURS,
+  FREE_CANCEL_HOURS_UNIT,
   HOURLY_MINIMUM,
   LATE_CANCEL_PERCENT,
   WAIT_AIRPORT_MIN,
@@ -135,11 +136,11 @@ export default function TermsPage() {
               <LegalList
                 items={[
                   <>
-                    <strong>More than {FREE_CANCEL_HOURS} hours before pickup</strong> — cancel
+                    <strong>More than {FREE_CANCEL_HOURS} {FREE_CANCEL_HOURS_UNIT} before pickup</strong> — cancel
                     or change free of charge.
                   </>,
                   <>
-                    <strong>Within {FREE_CANCEL_HOURS} hours, before a driver is assigned</strong> —
+                    <strong>Within {FREE_CANCEL_HOURS} {FREE_CANCEL_HOURS_UNIT}, before a driver is assigned</strong> —
                     free of charge, though we ask you to tell us as early as you can.
                   </>,
                   <>

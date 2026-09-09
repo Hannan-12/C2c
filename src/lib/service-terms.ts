@@ -11,7 +11,10 @@
  */
 
 /** Cancel free up to this many hours before pickup. */
-export const FREE_CANCEL_HOURS = 12;
+export const FREE_CANCEL_HOURS = 1;
+
+/** "hour" or "hours", agreeing with FREE_CANCEL_HOURS wherever it's spoken aloud. */
+export const FREE_CANCEL_HOURS_UNIT = FREE_CANCEL_HOURS === 1 ? "hour" : "hours";
 
 /** Charged if cancelled after a driver has been assigned. */
 export const LATE_CANCEL_PERCENT = 50;

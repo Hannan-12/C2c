@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { BUSINESS } from "@/lib/seo";
-import { FREE_CANCEL_HOURS, WAIT_AIRPORT_MIN } from "@/lib/service-terms";
+import { FREE_CANCEL_HOURS, FREE_CANCEL_HOURS_UNIT, WAIT_AIRPORT_MIN } from "@/lib/service-terms";
 
 /**
  * The promises worth knowing before committing to a booking, as a slow
@@ -21,7 +21,7 @@ import { FREE_CANCEL_HOURS, WAIT_AIRPORT_MIN } from "@/lib/service-terms";
 const PROMISES: { title: string; copy: string; icon: string }[] = [
   {
     title: "Free cancellation",
-    copy: `Cancel at no cost up to ${FREE_CANCEL_HOURS} hours before pickup.`,
+    copy: `Cancel at no cost up to ${FREE_CANCEL_HOURS} ${FREE_CANCEL_HOURS_UNIT} before pickup.`,
     icon: "cancellation",
   },
   {

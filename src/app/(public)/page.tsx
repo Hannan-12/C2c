@@ -163,6 +163,34 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/*
+        A single clickable strip rather than a card grid — one offer, so it
+        reads as an announcement rather than another tile competing with the
+        services below it.
+      */}
+      <Link
+        href="/book?serviceType=ride"
+        className="reveal group mt-10 flex items-center gap-4 rounded-card bg-accent
+                   px-6 py-5 sm:px-8 sm:py-6 transition-[transform,background-color]
+                   duration-300 ease-out-soft hover:-translate-y-0.5 hover:bg-accent-strong"
+      >
+        <div className="flex-1">
+          <p className="font-semibold text-ink text-base sm:text-lg">
+            Booking a return? Get 20% off the ride back.
+          </p>
+          <p className="text-sm text-ink/70 mt-0.5">
+            Tell us both legs when you book and the discount is applied on the spot.
+          </p>
+        </div>
+        <span
+          className="shrink-0 text-ink font-semibold text-sm flex items-center gap-1.5
+                     transition-transform duration-300 ease-out-soft group-hover:translate-x-1"
+        >
+          Book now
+          <span aria-hidden>→</span>
+        </span>
+      </Link>
+
       {/* Ruled index rather than cards — different rhythm from the hero above. */}
       <section className="reveal mt-20" aria-labelledby="services-heading">
         <h2 id="services-heading" className="display text-2xl sm:text-3xl mb-1.5">
