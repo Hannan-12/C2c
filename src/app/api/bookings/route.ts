@@ -155,7 +155,10 @@ export async function POST(req: Request) {
           pickupDatetime: row.pickupDatetime.toISOString(),
           distanceKm: quote?.distanceKm ?? null,
           durationMin: quote?.durationMin ?? null,
-          fareEstimate: quote?.fareEstimate ?? null,
+          // The discounted figure that was actually stored on the row, not
+          // the raw quote — echoing quote.fareEstimate here silently
+          // resurrected the full fare a promo had just cut.
+          fareEstimate,
           currency: quote?.currency ?? null,
           payUrl,
         },

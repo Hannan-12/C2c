@@ -37,6 +37,7 @@ export function PlaceInput({
 
   const listId = useId();
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // One session token per field, regenerated after a pick. Google bills
   // autocomplete per session rather than per keystroke when this is sent.
@@ -62,8 +63,8 @@ export function PlaceInput({
     if (query.length < 3) return;
 
     // Debounced: without this every keystroke is a billed request.
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
-      const controller = new AbortController();
       setLoading(true);
       try {
         const res = await fetch(
@@ -72,17 +73,25 @@ export function PlaceInput({
         );
         const data = (await res.json()) as { suggestions: PlaceSuggestion[] };
         setSuggestions(data.suggestions);
-        setOpen(data.suggestions.length > 0);
+        // A newer keystroke aborts the request behind it, but a response can
+        // still land after the user tabbed away with the text untouched —
+        // there was nothing to abort. Only reopen while this field still has
+        // focus, or the list pops back up over whatever the user moved to.
+        setOpen(data.suggestions.length > 0 && document.activeElement === inputRef.current);
         setActiveIndex(-1);
       } catch {
-        // Silent: the field still works as free text.
+        // Silent: the field still works as free text. Also where an aborted
+        // request lands — nothing to show for a query that's no longer live.
         setSuggestions([]);
       } finally {
         setLoading(false);
       }
     }, 250);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [query]);
 
   // Close when focus or a click leaves the field.
@@ -125,6 +134,7 @@ export function PlaceInput({
   return (
     <div ref={wrapperRef} className="relative">
       <input
+        ref={inputRef}
         id={id}
         type="text"
         value={value}
