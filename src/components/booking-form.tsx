@@ -27,6 +27,9 @@ const TABS: Tab[] = [
 
 type FieldErrors = Record<string, string>;
 
+/** Matches stopSchema's cap in lib/validation/booking. */
+const MAX_STOPS = 5;
+
 /**
  * The booking runs as four screens, not one long form.
  *
@@ -74,6 +77,10 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
   );
   const [pickupLocation, setPickupLocation] = useState(params.get("pickup") ?? "");
   const [dropoffLocation, setDropoffLocation] = useState(params.get("dropoff") ?? "");
+  // Intermediate stops, in order. Capped at 5 — matches stopSchema's limit in
+  // lib/validation/booking, so a full row of "Add stop" never gets to submit
+  // and only then find out it's one too many.
+  const [stops, setStops] = useState<string[]>(() => params.getAll("stop"));
   const [pickupDate, setPickupDate] = useState(params.get("date") ?? defaultPickup().date);
   const [pickupTime, setPickupTime] = useState(params.get("time") ?? defaultPickup().time);
   const [durationHours, setDurationHours] = useState(params.get("duration") ?? "2");
@@ -175,12 +182,16 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
     if (pickupDate) query.set("date", pickupDate);
     if (pickupTime) query.set("time", pickupTime);
 
+    query.delete("stop");
     if (isHourly) {
       query.set("duration", durationHours);
       query.delete("dropoff");
     } else {
       query.delete("duration");
       if (dropoffLocation) query.set("dropoff", dropoffLocation);
+      for (const stop of stops) {
+        if (stop.trim()) query.append("stop", stop);
+      }
     }
 
     router.push(`/book?${query.toString()}`);
@@ -197,6 +208,8 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
   const quoteReady = isHourly
     ? pickupLocation.trim().length > 2 && Number(durationHours) > 0
     : pickupLocation.trim().length > 2 && dropoffLocation.trim().length > 2;
+
+  const filledStops = stops.map((s) => s.trim()).filter(Boolean);
 
   // Derived rather than cleared via setState in the effect: resetting state
   // inside an effect body triggers a second render pass for no benefit.
@@ -238,6 +251,7 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
             pickupLocation,
             dropoffLocation: isHourly ? undefined : dropoffLocation,
             durationHours: isHourly ? Number(durationHours) : undefined,
+            stops: !isHourly && filledStops.length > 0 ? filledStops : undefined,
           }),
         });
         const data = await res.json();
@@ -268,6 +282,9 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
     dropoffLocation,
     durationHours,
     isHourly,
+    // filledStops is a fresh array every render; joined to a string so the
+    // effect re-runs when a stop's text actually changes, not on every render.
+    filledStops.join("|"),
   ]);
 
   async function handleSubmit(event: React.FormEvent) {
@@ -292,6 +309,10 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
           serviceType,
           pickupLocation,
           dropoffLocation: isHourly ? undefined : dropoffLocation,
+          stops:
+            !isHourly && filledStops.length > 0
+              ? filledStops.map((address) => ({ address }))
+              : undefined,
           pickupDatetime,
           durationHours: isHourly ? Number(durationHours) : undefined,
           flightNumber: isAirport && flightNumber ? flightNumber : undefined,
@@ -406,6 +427,46 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
               required
               place
             />
+          )}
+
+          {!isHourly && stops.map((stop, i) => (
+            <div key={i} className="sm:col-span-2">
+              <label className="field-label" htmlFor={`stop-${i}`}>
+                Stop {i + 1}
+              </label>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <PlaceInput
+                    id={`stop-${i}`}
+                    value={stop}
+                    onChange={(value) =>
+                      setStops((prev) => prev.map((s, j) => (j === i ? value : s)))
+                    }
+                    placeholder="Add a stop along the way"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStops((prev) => prev.filter((_, j) => j !== i))}
+                  aria-label={`Remove stop ${i + 1}`}
+                  className="btn-secondary shrink-0 px-3"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {!isHourly && stops.length < MAX_STOPS && (
+            <div className="sm:col-span-2">
+              <button
+                type="button"
+                onClick={() => setStops((prev) => [...prev, ""])}
+                className="text-sm font-semibold text-accent-strong hover:underline underline-offset-2"
+              >
+                + Add stop
+              </button>
+            </div>
           )}
 
           {isHourly && (
@@ -743,6 +804,9 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
           <dl className="text-sm">
             <ReviewRow label="Service" value={TABS.find((t) => t.id === serviceType)?.label} />
             <ReviewRow label="From" value={pickupLocation} />
+            {!isHourly && filledStops.map((stop, i) => (
+              <ReviewRow key={i} label={`Stop ${i + 1}`} value={stop} />
+            ))}
             <ReviewRow label="To" value={isHourly ? undefined : dropoffLocation} />
             <ReviewRow
               label={isHourly ? "Booked for" : "Pickup"}
@@ -901,6 +965,7 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
 
       <TripSummary
         from={pickupLocation}
+        stops={isHourly ? [] : filledStops}
         to={isHourly ? undefined : dropoffLocation}
         pickupLabel={pickupDatetime ? formatPickup(pickupDatetime) : undefined}
         vehicleLabel={
@@ -1021,6 +1086,7 @@ function AnimatedFare({
 
 function TripSummary({
   from,
+  stops,
   to,
   pickupLabel,
   vehicleLabel,
@@ -1031,6 +1097,7 @@ function TripSummary({
   error,
 }: {
   from?: string;
+  stops?: string[];
   to?: string;
   pickupLabel?: string;
   vehicleLabel?: string;
@@ -1054,6 +1121,9 @@ function TripSummary({
 
       <dl className="text-sm">
         <SummaryRow label="From" value={from} />
+        {stops?.map((stop, i) => (
+          <SummaryRow key={i} label={`Stop ${i + 1}`} value={stop} />
+        ))}
         <SummaryRow label="To" value={to} />
         <SummaryRow label="Pickup" value={pickupLabel} />
         <SummaryRow label="Vehicle" value={vehicleLabel} />
