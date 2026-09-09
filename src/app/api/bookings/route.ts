@@ -6,6 +6,7 @@ import { createBookingSchema } from "@/lib/validation/booking";
 import { generateReferenceCode } from "@/lib/reference-code";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { calculateQuote } from "@/lib/quote";
+import { RETURN_RIDE_PROMO_CODE, applyReturnRideDiscount } from "@/lib/promo";
 import { guessCity } from "@/lib/emirates";
 import { notifyBookingRequested } from "@/lib/email/notify";
 import { dbErrorMessage, isDuplicateKeyError } from "@/lib/db-error";
@@ -68,6 +69,15 @@ export async function POST(req: Request) {
     console.error("Quote failed during booking creation:", dbErrorMessage(error));
   }
 
+  // Applied to the stored estimate itself, not left as a note for whoever
+  // confirms the booking — a discount that only lives in an admin's memory is
+  // one that gets missed, and payableFare() (which the Stripe link reads) has
+  // no idea a promo exists.
+  const fareEstimate =
+    quote && input.promoCode === RETURN_RIDE_PROMO_CODE
+      ? applyReturnRideDiscount(quote.fareEstimate)
+      : (quote?.fareEstimate ?? null);
+
   const row = {
     id: randomUUID(),
     serviceType: input.serviceType,
@@ -96,7 +106,7 @@ export async function POST(req: Request) {
         : ("not_required" as const),
     distanceKm: quote?.distanceKm?.toString() ?? null,
     durationMin: quote?.durationMin ?? null,
-    fareEstimate: quote?.fareEstimate.toString() ?? null,
+    fareEstimate: fareEstimate?.toString() ?? null,
     // Nobody has agreed anything yet; the request has not been looked at. An
     // operator sets this if the fare they settle differs from the quote.
     agreedFare: null,

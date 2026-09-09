@@ -169,17 +169,20 @@ export default function HomePage() {
         services below it.
       */}
       <Link
-        href="/book?serviceType=ride"
+        href="/book?serviceType=ride&promo=return20"
         className="reveal group mt-10 flex items-center gap-4 rounded-card bg-accent
                    px-6 py-5 sm:px-8 sm:py-6 transition-[transform,background-color]
                    duration-300 ease-out-soft hover:-translate-y-0.5 hover:bg-accent-strong"
       >
         <div className="flex-1">
-          <p className="font-semibold text-ink text-base sm:text-lg">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold text-ink text-base sm:text-lg">
+            <span className="rounded-full bg-ink px-2.5 py-0.5 text-xs font-bold tracking-wide text-ink-inverse">
+              20% OFF
+            </span>
             Booking a return? Get 20% off the ride back.
           </p>
           <p className="text-sm text-ink/70 mt-0.5">
-            Tell us both legs when you book and the discount is applied on the spot.
+            The discount is applied automatically — just pick your vehicle and the reduced fare shows on the spot.
           </p>
         </div>
         <span

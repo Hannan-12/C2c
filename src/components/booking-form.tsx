@@ -12,6 +12,11 @@ import {
 import type { PaymentMethod, ServiceType, VehicleCategory } from "@/db/schema";
 import type { AllCategoriesQuote } from "@/lib/quote";
 import { VEHICLE_SPECS, smallestFitting, vehicleSpec } from "@/lib/vehicles";
+import {
+  RETURN_RIDE_DISCOUNT_PERCENT,
+  RETURN_RIDE_PROMO_CODE,
+  applyReturnRideDiscount,
+} from "@/lib/promo";
 import { PlaceInput } from "./place-input";
 import { PhoneInput } from "./phone-input";
 import { defaultPickup, todayLocal } from "@/lib/pickup";
@@ -96,6 +101,11 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
   );
   const [customerEmail, setCustomerEmail] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+
+  // Carried in from the homepage banner's link and forwarded through every
+  // step via the URL (goTo never strips unrecognised params), so it survives
+  // a refresh the same way the route does.
+  const hasReturnPromo = params.get("promo") === RETURN_RIDE_PROMO_CODE;
 
   const [quotes, setQuotes] = useState<AllCategoriesQuote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
@@ -226,7 +236,9 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
       ? {
           distanceKm: shownQuotes.distanceKm,
           durationMin: shownQuotes.durationMin,
-          fareEstimate: selectedFare.fareEstimate,
+          fareEstimate: hasReturnPromo
+            ? applyReturnRideDiscount(selectedFare.fareEstimate)
+            : selectedFare.fareEstimate,
           currency: selectedFare.currency,
         }
       : null;
@@ -323,6 +335,7 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
           customerWhatsapp,
           customerEmail,
           paymentMethod,
+          promoCode: hasReturnPromo ? RETURN_RIDE_PROMO_CODE : undefined,
         }),
       });
 
@@ -546,6 +559,16 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
           fare with you before the ride is assigned.
         </p>
 
+        {hasReturnPromo && (
+          <p className="mb-4 inline-flex items-center gap-2 rounded-field bg-accent-soft
+                         px-3 py-2 text-sm font-medium text-accent-strong">
+            <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-ink">
+              {RETURN_RIDE_DISCOUNT_PERCENT}% OFF
+            </span>
+            Return-ride discount applied to the fares below.
+          </p>
+        )}
+
         {/*
           One row per tier rather than a grid of small cards. Five cards across
           gave each car about 170px, at which a photograph of a saloon and a
@@ -616,9 +639,23 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
                     */}
                     <span className="text-right">
                       {fare ? (
-                        <span className="block text-xl font-bold">
-                          {formatFare(fare.fareEstimate, fare.currency)}
-                        </span>
+                        hasReturnPromo ? (
+                          <>
+                            <span className="block text-xs text-ink-faint line-through">
+                              {formatFare(fare.fareEstimate, fare.currency)}
+                            </span>
+                            <span className="block text-xl font-bold text-accent-strong">
+                              {formatFare(
+                                applyReturnRideDiscount(fare.fareEstimate),
+                                fare.currency,
+                              )}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="block text-xl font-bold">
+                            {formatFare(fare.fareEstimate, fare.currency)}
+                          </span>
+                        )
                       ) : (
                         <span className="block text-xl font-bold text-ink-faint">
                           {quoteLoading ? "…" : `From ${formatFare(vehicle.from)}`}
@@ -626,7 +663,9 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
                       )}
                       {fare && (
                         <span className="block text-[11px] text-ink-faint">
-                          estimated total
+                          {hasReturnPromo
+                            ? `${RETURN_RIDE_DISCOUNT_PERCENT}% off applied`
+                            : "estimated total"}
                         </span>
                       )}
                     </span>
@@ -835,6 +874,11 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
                   : "To be confirmed"}
               </dd>
             </div>
+            {hasReturnPromo && shownQuote && (
+              <p className="mt-1 text-right text-xs font-medium text-accent-strong">
+                {RETURN_RIDE_DISCOUNT_PERCENT}% return-ride discount applied
+              </p>
+            )}
           </dl>
         </section>
       )}

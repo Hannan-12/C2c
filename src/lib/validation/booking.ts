@@ -60,6 +60,12 @@ export const createBookingSchema = z
     // Defaults to cash so an older client, or a request made before card
     // payment existed, keeps the original behaviour rather than failing.
     paymentMethod: z.enum(PAYMENT_METHODS).default("cash"),
+
+    // A free string rather than an enum of one: an unrecognised or stale code
+    // (an old bookmarked link, a typo) should silently not discount the
+    // booking, not fail the whole submission over a promo the customer
+    // probably doesn't even know they're carrying.
+    promoCode: z.string().max(50).optional(),
   })
   // Hourly bookings have a duration instead of a destination; every other
   // service type needs somewhere to go (docs Section 5).
