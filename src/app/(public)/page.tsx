@@ -1,9 +1,7 @@
 import Link from "next/link";
-import { Suspense } from "react";
 import Image from "next/image";
 import { LocalBusinessSchema } from "@/components/structured-data";
 import { DestinationSlider } from "@/components/destination-slider";
-import { FleetTable } from "@/components/fleet-table";
 import { canonical } from "@/lib/seo";
 
 /**
@@ -206,23 +204,6 @@ export default function HomePage() {
             </li>
           ))}
         </ul>
-      </section>
-
-      <section className="reveal mt-20" aria-labelledby="fleet-heading">
-        <h2 id="fleet-heading" className="display text-2xl sm:text-3xl mb-1.5">
-          The fleet
-        </h2>
-        <p className="text-ink-muted mb-7">
-          Pick a class when you book. Starting fares shown.
-        </p>
-
-        <Suspense
-          fallback={
-            <div className="rounded-card bg-dock h-72 animate-pulse" aria-hidden />
-          }
-        >
-          <FleetTable />
-        </Suspense>
       </section>
 
       <DestinationSlider />
