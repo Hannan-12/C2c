@@ -102,10 +102,16 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
   const [customerEmail, setCustomerEmail] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
 
-  // Carried in from the homepage banner's link and forwarded through every
-  // step via the URL (goTo never strips unrecognised params), so it survives
-  // a refresh the same way the route does.
-  const hasReturnPromo = params.get("promo") === RETURN_RIDE_PROMO_CODE;
+  // Prefilled from the homepage banner's link, but a customer who lands here
+  // directly (a bookmark, a search result, a link from someone else) never
+  // sees that banner — so this also has to be something they can turn on
+  // themselves, not only something carried in. State rather than read
+  // straight from the URL, so the checkbox below can drive it; goTo() then
+  // writes it back out so it still survives a refresh the same way the route
+  // does.
+  const [hasReturnPromo, setHasReturnPromo] = useState(
+    params.get("promo") === RETURN_RIDE_PROMO_CODE,
+  );
 
   const [quotes, setQuotes] = useState<AllCategoriesQuote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
@@ -191,6 +197,12 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
     query.set("vehicle", vehicleCategory);
     if (pickupDate) query.set("date", pickupDate);
     if (pickupTime) query.set("time", pickupTime);
+
+    if (hasReturnPromo) {
+      query.set("promo", RETURN_RIDE_PROMO_CODE);
+    } else {
+      query.delete("promo");
+    }
 
     query.delete("stop");
     if (isHourly) {
@@ -545,6 +557,29 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
             />
           )}
         </div>
+
+        {/*
+          Not gated behind the homepage banner: a customer who lands here
+          directly — a bookmark, a search result, someone else's link — never
+          sees that banner, so the only offer they'd otherwise get is one they
+          have no way to ask for. This is the same code the banner sets in the
+          URL; checking it here does exactly what following that link does.
+        */}
+        <label
+          className="mt-4 flex items-start gap-3 rounded-field border border-line
+                     px-4 py-3 cursor-pointer transition-colors hover:bg-surface"
+        >
+          <input
+            type="checkbox"
+            checked={hasReturnPromo}
+            onChange={(e) => setHasReturnPromo(e.target.checked)}
+            className="mt-0.5 size-4 accent-accent-strong shrink-0"
+          />
+          <span className="text-sm">
+            <span className="font-semibold">Booking a return ride? </span>
+            Get {RETURN_RIDE_DISCOUNT_PERCENT}% off — applied automatically once you pick a vehicle.
+          </span>
+        </label>
       </section>
       </>
       )}
