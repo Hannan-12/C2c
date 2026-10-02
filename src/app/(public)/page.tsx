@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { LocalBusinessSchema } from "@/components/structured-data";
 import { DestinationSlider } from "@/components/destination-slider";
-import { canonical } from "@/lib/seo";
+import { BUSINESS, canonical } from "@/lib/seo";
 
 /**
  * The homepage declared no canonical at all, inheriting a root layout that
@@ -200,7 +200,8 @@ export default function HomePage() {
           What we run
         </h2>
         <p className="text-ink-muted mb-7">
-          Three chauffeur services, each confirmed with you before booking.
+          Always a luxury car with a professional driver, never self-drive.
+          Available {BUSINESS.openingHoursLabel}.
         </p>
 
         <ul className="border-t border-line">

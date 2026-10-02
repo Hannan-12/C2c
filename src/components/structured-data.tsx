@@ -28,6 +28,8 @@ function JsonLd({ data }: { data: object }) {
  */
 export function LocalBusinessSchema() {
   const telephone = BUSINESS.whatsapp ? `+${BUSINESS.whatsapp}` : undefined;
+  const [, dailyHours = "00:00-23:59"] = BUSINESS.openingHours.split(" ");
+  const [opens, closes] = dailyHours.split("-");
   return (
     <JsonLd
       data={{
@@ -40,6 +42,20 @@ export function LocalBusinessSchema() {
         logo: `${siteUrl()}/images/logo-badge.png`,
         description:
           "Chauffeur rides, airport transfers, city tours and hourly hire across Dubai, Abu Dhabi and Sharjah. Every booking is confirmed by a person.",
+        openingHoursSpecification: {
+          "@type": "OpeningHoursSpecification",
+          dayOfWeek: [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+          ],
+          opens,
+          closes,
+        },
         ...(telephone ? { telephone } : {}),
         email: BUSINESS.email,
         currenciesAccepted: "AED",

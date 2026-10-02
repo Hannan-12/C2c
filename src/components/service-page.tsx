@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BreadcrumbSchema, ServiceSchema } from "./structured-data";
+import { BUSINESS } from "@/lib/seo";
 
 /**
  * Shared shell for the service pages (docs Section 9).
@@ -154,8 +155,8 @@ export function ServicePage({ content }: { content: ServicePageContent }) {
         <div className="rounded-card bg-dock text-ink-inverse p-8 sm:p-10">
           <h2 className="display text-2xl sm:text-3xl mb-2">Ready when you are</h2>
           <p className="text-ink-inverse/70 mb-7 max-w-lg leading-relaxed">
-            Send us the route and someone confirms the car, the driver and the
-            fare with you directly.
+            Send us the route. We are available {BUSINESS.openingHoursLabel}.
+            Someone confirms the car, the driver and the fare with you directly.
           </p>
           <Link href={content.bookHref} className="btn-primary">
             Get a fare

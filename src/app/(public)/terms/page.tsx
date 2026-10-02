@@ -8,6 +8,7 @@ import {
   LATE_CANCEL_PERCENT,
   WAIT_AIRPORT_MIN,
   WAIT_STANDARD_MIN,
+  ROUTE_FEES_CONFIRMATION,
 } from "@/lib/service-terms";
 import { formatPhone } from "@/lib/format";
 
@@ -55,10 +56,7 @@ export default function TermsPage() {
               </p>
               <p>
                 {BRAND} is the trading name of{" "}
-                <strong>{BUSINESS.legalEntity}</strong>, licensed in the United
-                Arab Emirates for passenger transport by luxury car and for car
-                rental with a driver. That entity is the one you contract with,
-                and the name that may appear on your card statement.
+                <strong>{BUSINESS.legalEntity}</strong>.
               </p>
               <p>
                 By submitting a booking request you accept them. If something
@@ -103,7 +101,7 @@ export default function TermsPage() {
                 items={[
                   "A confirmed fare does not change because of traffic, a longer route, or demand. There is no surge pricing.",
                   "It does change if you change the trip — a new destination, extra stops, or additional hours are re-quoted and agreed with you.",
-                  "Tolls, parking and airport gate fees are included unless we tell you otherwise when confirming.",
+                  ROUTE_FEES_CONFIRMATION,
                   "We accept cash, card and bank transfer. Cash is paid to the driver at the end of the trip.",
                   <>
                     Choosing card takes you to Stripe when you book, and the
@@ -213,7 +211,7 @@ export default function TermsPage() {
                   "Give us your flight number when booking. We track the arrival and move your pickup to match a delayed landing.",
                   <>Free waiting at airports is {WAIT_AIRPORT_MIN} minutes from actual landing time.</>,
                   "We agree the exact meeting point with you in advance, since it differs by terminal.",
-                  "If your flight is cancelled, tell us as soon as you can and we will cancel without charge.",
+                  "If your flight is cancelled, contact us to change or cancel the booking under the cancellation policy above.",
                   "If you land and cannot find your driver, call us before booking another car — we will resolve it on the phone.",
                 ]}
               />
@@ -242,9 +240,8 @@ export default function TermsPage() {
           body: (
             <>
               <p>
-                We will get you where you are going in a licensed vehicle with a
-                licensed driver, at the fare we agreed. Where we fall short, we
-                will put it right.
+                We will provide the vehicle and driver described in the booking
+                confirmed with you, at the agreed fare.
               </p>
               <LegalList
                 items={[

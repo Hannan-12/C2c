@@ -124,10 +124,7 @@ export default function AboutPage() {
         </h2>
         <p className="text-ink-muted leading-relaxed max-w-2xl">
           {BRAND} is the trading name of{" "}
-          <strong className="text-ink font-semibold">{BUSINESS.legalEntity}</strong>,
-          licensed in the United Arab Emirates for passenger transport by
-          luxury car and for car rental with a driver. That is the name on our
-          licence, on your invoice, and on your card statement.
+          <strong className="text-ink font-semibold">{BUSINESS.legalEntity}</strong>.
         </p>
         <p className="text-ink-muted leading-relaxed max-w-2xl mt-3">
           Reach us on WhatsApp or at{" "}

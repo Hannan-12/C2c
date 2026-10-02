@@ -1,6 +1,6 @@
 import { ServicePage, type ServicePageContent } from "@/components/service-page";
 import { ServicePhoto } from "@/components/service-photo";
-import { pageMetadata } from "@/lib/seo";
+import { BUSINESS, pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
   title: "Chauffeur Rides",
@@ -36,8 +36,8 @@ const content: ServicePageContent = {
       copy: "You get the driver's name and number before pickup, not a moving dot on a map two minutes out.",
     },
     {
-      title: "Requested pickup time",
-      copy: "Enter your preferred time and the team will confirm availability.",
+      title: "Any hour, any day",
+      copy: `Request a pickup ${BUSINESS.openingHoursLabel}.`,
     },
     {
       title: "Pay how you like",

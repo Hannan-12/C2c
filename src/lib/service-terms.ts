@@ -48,4 +48,8 @@ export const REFUND_BANK_DAYS_LABEL = "5–10";
 
 /** Neutral public wording shared wherever trip fees need confirmation. */
 export const ROUTE_FEES_CONFIRMATION =
-  "Confirm with the team before booking whether tolls, parking, airport gate fees or other trip expenses apply and how they are handled.";
+  "Tolls, parking and airport gate fees vary by route and are confirmed with you before the trip.";
+
+/** Shared airport-delay wording for public FAQs and route pages. */
+export const AIRPORT_FLIGHT_DELAY_ANSWER =
+  `We track flight arrivals and adjust pickup times to match delays. Airport waiting is free for ${WAIT_AIRPORT_MIN} minutes from actual landing.`;

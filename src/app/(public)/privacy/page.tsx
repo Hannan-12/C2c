@@ -65,7 +65,7 @@ export default function PrivacyPage() {
                   <><strong>Your email address</strong>, if you give one — optional, used only to send booking emails.</>,
                   <><strong>Pickup and drop-off locations</strong>, and any stops, including coordinates where your browser or our address lookup provides them.</>,
                   <><strong>Date and time</strong> of travel, and the duration for hourly bookings.</>,
-                  <><strong>Flight number</strong>, for airport transfers, so we can track delays.</>,
+                  <><strong>Flight number</strong>, for airport transfers, so we can track arrivals and adjust pickup times when flights are delayed.</>,
                   <><strong>Passenger and luggage counts</strong>, and the vehicle class you choose.</>,
                 ]}
               />

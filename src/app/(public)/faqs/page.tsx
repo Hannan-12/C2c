@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { FaqList } from "@/components/service-page";
 import { BUSINESS, pageMetadata } from "@/lib/seo";
+import {
+  FREE_CANCEL_HOURS,
+  FREE_CANCEL_HOURS_UNIT,
+  LATE_CANCEL_PERCENT,
+  WAIT_AIRPORT_MIN,
+} from "@/lib/service-terms";
 
 export const metadata = pageMetadata({
   title: "FAQs",
@@ -46,8 +52,7 @@ const GROUPS: { heading: string; items: { question: string; answer: string }[] }
       },
       {
         question: "Are you available at night?",
-        answer:
-          "You can enter your preferred pickup time in the booking request. The team will confirm availability with you.",
+        answer: `Yes. We run ${BUSINESS.openingHoursLabel}.`,
       },
     ],
   },
@@ -82,12 +87,12 @@ const GROUPS: { heading: string; items: { question: string; answer: string }[] }
       {
         question: "Can I cancel or change my booking?",
         answer:
-          "Contact us with your reference code to ask about changing or cancelling a booking. Check the terms confirmed for your booking for any applicable charges or refund arrangements.",
+          `You can cancel free more than ${FREE_CANCEL_HOURS} ${FREE_CANCEL_HOURS_UNIT} before pickup, or any time before a driver is assigned. After assignment, ${LATE_CANCEL_PERCENT}% of the fare applies. Airport waiting is free for ${WAIT_AIRPORT_MIN} minutes from actual landing.`,
       },
       {
         question: "What if my flight is delayed?",
         answer:
-          "If your flight timing changes, contact us with your reference code so we can discuss the pickup arrangements. Ask the team to confirm any waiting terms for your booking.",
+          `We track flight arrivals and adjust pickup times to match delays. Airport waiting is free for ${WAIT_AIRPORT_MIN} minutes from actual landing.`,
       },
       {
         question: "What happens if the driver doesn't arrive?",

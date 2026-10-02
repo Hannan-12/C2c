@@ -1,28 +1,30 @@
 import { ServicePage, type ServicePageContent } from "@/components/service-page";
 import { ServicePhoto } from "@/components/service-photo";
-import { pageMetadata } from "@/lib/seo";
-import { ROUTE_FEES_CONFIRMATION } from "@/lib/service-terms";
+import { BUSINESS, pageMetadata } from "@/lib/seo";
+import {
+  AIRPORT_FLIGHT_DELAY_ANSWER,
+  ROUTE_FEES_CONFIRMATION,
+} from "@/lib/service-terms";
 
 export const metadata = pageMetadata({
   title: "Airport Transfers",
   description:
-    "Airport transfers to and from DXB, DWC, AUH and Sharjah. Request a fare before booking and confirm your pickup arrangements with the team.",
+    "Airport transfers to and from DXB, DWC, AUH and Sharjah. We track flight arrivals, adjust pickups for delays and agree fares before travel.",
   path: "/airport-rides",
 });
 
-// TODO(client): confirm terminal pickup arrangements and waiting terms before
-// publishing specific meeting-point or waiting claims.
+// TODO(client): confirm terminal pickup arrangements before publishing a specific meeting point.
 const content: ServicePageContent = {
   eyebrow: "DXB · DWC · AUH · SHJ",
   title: (
     <>
-      Airport rides.
+      Your flight lands.
       <br />
-      <span className="text-accent-strong">Pickup details confirmed with you.</span>
+      <span className="text-accent-strong">Your car is there.</span>
     </>
   ),
   intro:
-    "Request an airport pickup and confirm the arrangements with the team before booking. Contact us if your plans change.",
+    "Give us your flight number when you book. We track flight arrivals and adjust pickup times to match delays.",
   art: (
     <ServicePhoto
       src="/images/airport.jpg"
@@ -39,26 +41,27 @@ const content: ServicePageContent = {
   // A transfer genuinely happens in this order, which is why it is numbered.
   sequence: [
     { label: "You book the flight number", copy: "It sits on the booking, not in a note someone has to read." },
-    { label: "Confirm the pickup", copy: "Discuss the pickup arrangements with the team before booking." },
+    { label: "We watch the arrival", copy: "A delay moves the pickup. You do not need to message us from the air." },
     { label: "Driver is named", copy: "Their name and number reach you before you land." },
     { label: "Fare already agreed", copy: "Settled at booking, so nothing is negotiated at the kerb." },
   ],
   table: {
     heading: "Airports we cover",
-    note: "Ask the team to confirm pickup and travel details for your airport and address.",
-    caption: "Airports listed with their airport codes",
-    columns: ["Airport", "Code"],
+    note: "Typical drive time and distance to the city centre each airport serves.",
+    caption: "Airports served with typical distance and drive time to the nearest city centre",
+    columns: ["Airport", "Code", "To centre", "Drive"],
     rows: [
-      ["Dubai International", "DXB"],
-      ["Al Maktoum", "DWC"],
-      ["Abu Dhabi", "AUH"],
-      ["Sharjah", "SHJ"],
+      ["Dubai International", "DXB", "15 km", "20 min"],
+      ["Al Maktoum", "DWC", "45 km", "40 min"],
+      ["Abu Dhabi", "AUH", "35 km", "35 min"],
+      ["Sharjah", "SHJ", "15 km", "25 min"],
     ],
+    // TODO(client): confirm these reference figures before publishing.
   },
   included: [
     {
-      title: "Pickup coordination",
-      copy: "Confirm the pickup arrangements with the team. Contact us if your plans change.",
+      title: "We follow the flight",
+      copy: AIRPORT_FLIGHT_DELAY_ANSWER,
     },
     {
       title: "Fare fixed before you fly",
@@ -69,8 +72,8 @@ const content: ServicePageContent = {
       copy: "You tell us how many bags when booking, and we send a car that fits them. No arriving to a boot that's too small.",
     },
     {
-      title: "Pickup timing",
-      copy: "Enter your preferred pickup time in the booking request. Availability is confirmed with you.",
+      title: "Late and early runs",
+      copy: `Airport service runs ${BUSINESS.openingHoursLabel}.`,
     },
     {
       title: "Driver details before landing",
@@ -89,7 +92,7 @@ const content: ServicePageContent = {
     {
       question: "What if my flight is delayed?",
       answer:
-        "If your flight timing changes, contact us with your reference code to discuss the pickup arrangements. Ask the team to confirm any waiting terms for your booking.",
+        AIRPORT_FLIGHT_DELAY_ANSWER,
     },
     {
       question: "Where does the driver meet me?",
@@ -113,7 +116,7 @@ const content: ServicePageContent = {
   ],
   schema: {
     name: "Airport Transfers",
-    description: "Airport pickups and drop-offs with arrangements confirmed directly with the team.",
+    description: "Airport pickups with flight arrivals tracked and pickup times adjusted for delays.",
     path: "/airport-rides",
   },
   bookHref: "/book?serviceType=airport",

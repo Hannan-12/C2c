@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { BUSINESS } from "@/lib/seo";
-import { FREE_CANCEL_HOURS, FREE_CANCEL_HOURS_UNIT, WAIT_AIRPORT_MIN } from "@/lib/service-terms";
+import { FREE_CANCEL_HOURS, FREE_CANCEL_HOURS_UNIT, LATE_CANCEL_PERCENT, WAIT_AIRPORT_MIN } from "@/lib/service-terms";
 
 /**
  * The promises worth knowing before committing to a booking, as a slow
@@ -10,23 +10,19 @@ import { FREE_CANCEL_HOURS, FREE_CANCEL_HOURS_UNIT, WAIT_AIRPORT_MIN } from "@/l
  * it: the cancellation window and the airport waiting allowance come from
  * lib/service-terms.ts, which /terms renders as well, and the opening hours
  * and human confirmation are already in the LocalBusiness structured data.
- * Nothing here is new — it surfaces existing commitments where they matter.
+ * Nothing here is new. It surfaces existing commitments where they matter.
  *
- * Two claims competitors make are deliberately absent. "Real-time flight
- * monitoring" would be untrue: we record a flight number and nothing watches
- * it. "Certified chauffeurs" is unverified, and a claim about a driver's
- * licensing is not one to make on a supplier's behalf without evidence. Both
- * are one array entry away once they are true.
+ * Flight arrivals are monitored and pickup times adjust to delays.
  */
 const PROMISES: { title: string; copy: string; icon: string }[] = [
   {
     title: "Free cancellation",
-    copy: `Cancel at no cost up to ${FREE_CANCEL_HOURS} ${FREE_CANCEL_HOURS_UNIT} before pickup.`,
+    copy: `Cancel free more than ${FREE_CANCEL_HOURS} ${FREE_CANCEL_HOURS_UNIT} before pickup or any time before driver assignment. After assignment, ${LATE_CANCEL_PERCENT}% of the fare applies.`,
     icon: "cancellation",
   },
   {
     title: "Airport waiting included",
-    copy: `${WAIT_AIRPORT_MIN} minutes free, measured from when you land.`,
+    copy: `${WAIT_AIRPORT_MIN} minutes free from actual landing.`,
     icon: "airport",
   },
   {

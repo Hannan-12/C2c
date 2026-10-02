@@ -91,8 +91,8 @@ export default function ContactPage() {
             },
             {
               label: "Hours",
-              value: "24 / 7",
-              note: "Every day, including holidays",
+              value: BUSINESS.openingHoursLabel,
+              note: "Bookings, changes and questions",
             },
           ].map((item) => (
             <li key={item.label} className="bg-canvas px-5 py-6">
