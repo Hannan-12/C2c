@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "npm run db:deploy && next start",
     "lint": "eslint",
     "check:transfer-fares": "node --experimental-strip-types scripts/check-transfer-fares.mjs",
