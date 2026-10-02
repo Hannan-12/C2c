@@ -44,6 +44,7 @@ export type ServicePageContent = {
   bookHref: string;
   /** Drives Service + BreadcrumbList JSON-LD for this page. */
   schema: { name: string; description: string; path: string };
+  routeLinks?: { label: string; href: string }[];
 };
 
 export function ServicePage({ content }: { content: ServicePageContent }) {
@@ -138,6 +139,15 @@ export function ServicePage({ content }: { content: ServicePageContent }) {
             Common questions
           </h2>
           <FaqList items={content.faqs} />
+        </section>
+      )}
+
+      {content.routeLinks && content.routeLinks.length > 0 && (
+        <section className="reveal mt-16" aria-labelledby="service-route-links">
+          <h2 id="service-route-links" className="display text-2xl sm:text-3xl mb-5">Popular routes</h2>
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {content.routeLinks.map((route) => <li key={route.href}><Link className="block rounded-field border border-line bg-surface px-4 py-3 text-sm font-medium hover:text-accent-strong" href={route.href}>{route.label} →</Link></li>)}
+          </ul>
         </section>
       )}
 

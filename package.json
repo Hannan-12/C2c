@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "npm run db:deploy && next start",
     "lint": "eslint",
+    "check:transfer-fares": "node --experimental-strip-types scripts/check-transfer-fares.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",

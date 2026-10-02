@@ -30,6 +30,7 @@ import { ensurePaymentLink } from "@/lib/payments/checkout";
 import { createBookingSchema } from "@/lib/validation/booking";
 import { generateReferenceCode } from "@/lib/reference-code";
 import { calculateQuote } from "@/lib/quote";
+import { TRANSFERS } from "@/data/transfers";
 import { createRefund } from "@/lib/payments/stripe";
 import { recordRefund } from "@/lib/payments/record-refund";
 import { SESSION_COOKIE } from "@/lib/session";
@@ -448,6 +449,10 @@ export async function updatePricing(formData: FormData) {
    */
   revalidatePath("/");
   revalidatePath("/rides");
+  revalidatePath("/airport-rides");
+  revalidatePath("/transfers");
+  for (const route of TRANSFERS) revalidatePath(`/transfers/${route.slug}`);
+  revalidatePath("/sitemap.xml");
   revalidatePath("/admin/pricing");
 }
 

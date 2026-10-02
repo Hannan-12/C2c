@@ -1,5 +1,11 @@
 import type { MetadataRoute } from "next";
 import { canonical } from "@/lib/seo";
+import { TRANSFERS } from "@/data/transfers";
+import { desc } from "drizzle-orm";
+import { db } from "@/db";
+import { vehiclePricing } from "@/db/schema";
+
+export const revalidate = 3600;
 
 /**
  * Public routes only.
@@ -8,43 +14,33 @@ import { canonical } from "@/lib/seo";
  * unauthenticated and expose customer PII, so they must never be submitted for
  * indexing. /track itself is the code-entry form and is safe.
  */
-const ROUTES: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"] }[] = [
-  { path: "/", priority: 1, changeFrequency: "weekly" },
-  { path: "/book", priority: 0.9, changeFrequency: "monthly" },
-  { path: "/rides", priority: 0.8, changeFrequency: "monthly" },
-  { path: "/airport-rides", priority: 0.8, changeFrequency: "monthly" },
-  { path: "/city-tour", priority: 0.8, changeFrequency: "monthly" },
-  { path: "/faqs", priority: 0.6, changeFrequency: "monthly" },
-  { path: "/about-us", priority: 0.5, changeFrequency: "yearly" },
-  { path: "/contact-us", priority: 0.5, changeFrequency: "yearly" },
-  { path: "/terms", priority: 0.3, changeFrequency: "yearly" },
-  { path: "/refunds", priority: 0.3, changeFrequency: "yearly" },
-  { path: "/privacy", priority: 0.3, changeFrequency: "yearly" },
-  { path: "/track", priority: 0.4, changeFrequency: "yearly" },
-];
+const ROUTES = ["/", "/book", "/rides", "/airport-rides", "/transfers", "/city-tour", "/faqs", "/about-us", "/contact-us", "/terms", "/refunds", "/privacy", "/track", ...TRANSFERS.map(({ slug }) => `/transfers/${slug}`)];
 
 /**
- * No lastModified, deliberately.
- *
- * It used to be `new Date()` evaluated per request, so every URL claimed to
- * have changed the instant the sitemap was fetched — all twelve of them, every
- * time. Google's guidance is that it ignores lastmod unless the value is
- * consistently accurate, and a sitemap where the whole site changes every
- * second is the clearest possible signal that ours was not.
- *
- * That matters more than it sounds for a site sitting in "Discovered —
- * currently not indexed": lastmod is one of the few hints Google uses to
- * decide which known URLs are worth fetching next, and a dishonest one is
- * worse than none, because it teaches the crawler to disregard the file.
- *
- * Omitted rather than hand-maintained. A date typed into this list would be
- * accurate on the day it was written and wrong within a month, which is how
- * the field became untrustworthy in the first place.
+ * Route page dates are maintained explicitly so the transfer pages have a
+ * stable lastModified value rather than claiming to change on every request.
  */
-export default function sitemap(): MetadataRoute.Sitemap {
-  return ROUTES.map((route) => ({
-    url: canonical(route.path),
-    changeFrequency: route.changeFrequency,
-    priority: route.priority,
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  return buildSitemap();
+}
+
+async function buildSitemap(): Promise<MetadataRoute.Sitemap> {
+  let latestRateUpdate: Date | undefined;
+  try {
+    const [latest] = await db
+      .select({ updatedAt: vehiclePricing.updatedAt })
+      .from(vehiclePricing)
+      .orderBy(desc(vehiclePricing.updatedAt))
+      .limit(1);
+    latestRateUpdate = latest?.updatedAt ?? undefined;
+  } catch {
+    // The sitemap remains available during a database outage or an empty setup.
+  }
+
+  return ROUTES.map((path) => ({
+    url: canonical(path),
+    lastModified: path === "/transfers" || path.startsWith("/transfers/")
+      ? latestRateUpdate ?? "2026-10-02"
+      : "2026-10-02",
   }));
 }

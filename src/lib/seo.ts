@@ -38,7 +38,7 @@ export const BUSINESS = {
 } as const;
 
 export function siteUrl(): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://rideonclick.com").replace(/\/$/, "");
 }
 
 export function canonical(path: string): string {

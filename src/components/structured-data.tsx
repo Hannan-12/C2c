@@ -42,10 +42,12 @@ export function LocalBusinessSchema() {
         image: `${siteUrl()}/images/logo-badge.png`,
         logo: `${siteUrl()}/images/logo-badge.png`,
         description:
-          "Chauffeur rides, airport transfers, city tours and hourly hire across Dubai, Abu Dhabi and Sharjah — always a luxury car with a professional driver. Every booking confirmed by a person.",
+          "Chauffeur rides, airport transfers, city tours and hourly hire across Dubai, Abu Dhabi and Sharjah. Every booking is confirmed by a person.",
         telephone: `+${BUSINESS.whatsapp}`,
         email: BUSINESS.email,
         priceRange: "$$",
+        // TODO(client): add verified social profile URLs when provided.
+        sameAs: [],
         currenciesAccepted: "AED",
         paymentAccepted: "Cash, Credit Card, Bank Transfer",
         areaServed: BUSINESS.areasServed.map((area) => ({
@@ -56,7 +58,9 @@ export function LocalBusinessSchema() {
           "@type": "PostalAddress",
           addressCountry: "AE",
           addressRegion: BUSINESS.areasServed[0],
+          // TODO(client): supply the registered street address.
         },
+        // TODO(client): add verified latitude and longitude.
         openingHoursSpecification: {
           "@type": "OpeningHoursSpecification",
           dayOfWeek: [

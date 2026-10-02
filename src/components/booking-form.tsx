@@ -635,7 +635,7 @@ export function BookingForm({ cardEnabled = false }: { cardEnabled?: boolean }) 
                   <span className="relative block h-44 w-full shrink-0 bg-dock sm:h-auto sm:w-56 sm:self-stretch">
                     <Image
                       src={`/images/vehicles/${vehicle.id}.jpg`}
-                      alt=""
+                      alt={`${vehicle.label} chauffeur vehicle`}
                       fill
                       sizes="(min-width: 640px) 14rem, 100vw"
                       className="object-cover"

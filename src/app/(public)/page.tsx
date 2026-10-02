@@ -34,7 +34,7 @@ const SERVICES = [
     href: "/airport-rides",
     label: "Airport transfers",
     copy: "DXB, DWC, AUH and Sharjah",
-    detail: "Flight number on file, so we track delays",
+    detail: "Flight details on file to coordinate pickup",
   },
   {
     href: "/city-tour",
@@ -76,7 +76,7 @@ export default function HomePage() {
         <div className="relative min-h-[30rem] lg:min-h-[38rem] flex items-center overflow-hidden">
           <Image
             src="/images/hero-chauffeur-suv.jpg"
-            alt=""
+            alt="Chauffeur beside a black executive SUV in Dubai"
             fill
             priority
             sizes="100vw"
@@ -122,11 +122,11 @@ export default function HomePage() {
                 className="animate-rise display text-[2.75rem] sm:text-6xl leading-[0.95] mb-6 text-ink-inverse"
                 style={{ animationDelay: "120ms" }}
               >
-                Booked by you.
+                Chauffeur &amp;
                 <br />
-                Confirmed by
+                airport transfers
                 <br />
-                <span className="text-accent">a person.</span>
+                <span className="text-accent">across Dubai, Abu Dhabi &amp; Sharjah.</span>
               </h1>
 
               <p
@@ -238,6 +238,19 @@ export default function HomePage() {
       </section>
 
       <DestinationSlider />
+
+      <section className="reveal mt-20 max-w-4xl" aria-labelledby="airport-transfer-guide">
+        <h2 id="airport-transfer-guide" className="display text-2xl sm:text-3xl mb-3">Airport transfers across the Emirates</h2>
+        <p className="text-ink-muted leading-relaxed">
+          Book a chauffeur for airport transfers with a fare agreed before travel. Share your flight details so the team can coordinate pickup timing if your arrival changes. Choose from executive saloons, business class cars, SUVs and vans, subject to availability. Explore popular journeys: {[
+            ["Dubai Airport to Dubai Marina", "/transfers/dubai-airport-to-dubai-marina"],
+            ["Dubai Airport to Downtown Dubai", "/transfers/dubai-airport-to-downtown-dubai"],
+            ["Dubai Airport to Palm Jumeirah", "/transfers/dubai-airport-to-palm-jumeirah"],
+            ["Dubai to Abu Dhabi", "/transfers/dubai-to-abu-dhabi"],
+            ["Dubai Airport to Sharjah", "/transfers/dubai-airport-to-sharjah"],
+          ].map(([label, href], i) => <span key={href}>{i > 0 ? ", " : " "}<Link className="text-accent-strong underline underline-offset-2" href={href}>{label}</Link></span>)}.
+        </p>
+      </section>
 
       {/* Numbered because the order is real — each step depends on the last. */}
       <section className="reveal mt-20 mb-6" aria-labelledby="how-heading">

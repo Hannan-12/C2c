@@ -21,56 +21,55 @@ const DESTINATIONS: {
   name: string;
   copy: string;
   image: string;
-  /** Query for /book — airports are somewhere you leave from, not go to. */
-  query: string;
+  href: string;
 }[] = [
   {
     name: "Downtown Dubai",
     copy: "Burj Khalifa, Dubai Mall and the fountain.",
     image: "/images/destinations/downtown-dubai.jpg",
-    query: "dropoff=Burj+Khalifa%2C+Downtown+Dubai",
+    href: "/transfers/dubai-airport-to-downtown-dubai",
   },
   {
     name: "Dubai Marina",
     copy: "The Walk, JBR beach and the marina towers.",
     image: "/images/destinations/dubai-marina.jpg",
-    query: "dropoff=Dubai+Marina",
+    href: "/transfers/dubai-airport-to-dubai-marina",
   },
   {
     name: "Palm Jumeirah",
     copy: "Atlantis, the resorts and the fronds.",
     image: "/images/destinations/palm-jumeirah.jpg",
-    query: "dropoff=Palm+Jumeirah%2C+Dubai",
+    href: "/transfers/dubai-airport-to-palm-jumeirah",
   },
   {
     name: "Burj Al Arab",
     copy: "Jumeirah beach road and the hotel drive.",
     image: "/images/destinations/burj-al-arab.jpg",
-    query: "dropoff=Burj+Al+Arab%2C+Jumeirah",
+    href: "/transfers/dubai-airport-to-downtown-dubai",
   },
   {
     name: "Dubai Creek",
     copy: "Deira, the gold and spice souks, the abra stations.",
     image: "/images/destinations/dubai-creek.jpg",
-    query: "dropoff=Dubai+Creek%2C+Deira",
+    href: "/transfers/dubai-airport-to-downtown-dubai",
   },
   {
     name: "Dubai International",
     copy: "DXB terminals 1, 2 and 3. Met inside arrivals.",
     image: "/images/airport.jpg",
-    query: "serviceType=airport&pickup=Dubai+International+Airport+%28DXB%29",
+    href: "/transfers/dubai-airport-to-downtown-dubai",
   },
   {
     name: "Abu Dhabi",
     copy: "Sheikh Zayed Grand Mosque, the Corniche and Yas Island.",
     image: "/images/destinations/abu-dhabi.jpg",
-    query: "dropoff=Abu+Dhabi",
+    href: "/transfers/dubai-to-abu-dhabi",
   },
   {
     name: "Sharjah",
     copy: "Al Majaz waterfront, the museums and the souks.",
     image: "/images/destinations/sharjah.jpg",
-    query: "dropoff=Sharjah",
+    href: "/transfers/dubai-airport-to-sharjah",
   },
 ];
 
@@ -179,7 +178,7 @@ export function DestinationSlider() {
         {DESTINATIONS.map((place) => (
           <li key={place.name} className="snap-start shrink-0 w-64 sm:w-80">
             <Link
-              href={`/book?${place.query}`}
+              href={place.href}
               className="group block overflow-hidden rounded-card border border-line bg-surface
                          transition-[box-shadow,transform] duration-200 ease-out-soft
                          hover:-translate-y-0.5 hover:shadow-[var(--shadow-lift)]"
@@ -187,7 +186,7 @@ export function DestinationSlider() {
               <span className="relative block aspect-[9/6] bg-dock">
                 <Image
                   src={place.image}
-                  alt=""
+                  alt={`${place.name} destination in the UAE`}
                   fill
                   sizes="(min-width: 640px) 20rem, 16rem"
                   className="object-cover transition-transform duration-500 ease-out-soft

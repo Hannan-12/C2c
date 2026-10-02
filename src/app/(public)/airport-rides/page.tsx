@@ -5,7 +5,7 @@ import { pageMetadata } from "@/lib/seo";
 export const metadata = pageMetadata({
   title: "Airport Transfers",
   description:
-    "Airport transfers to and from DXB, DWC, AUH and Sharjah. Flight number on file so we track delays, with a fixed fare agreed before you fly.",
+    "Airport transfers to and from DXB, DWC, AUH and Sharjah. Share your flight number to help coordinate pickup timing, with the fare agreed before booking.",
   path: "/airport-rides",
 });
 
@@ -21,7 +21,7 @@ const content: ServicePageContent = {
     </>
   ),
   intro:
-    "Give us your flight number when you book. We watch the arrival time, so a delayed landing moves your pickup instead of costing you the car.",
+    "Give us your flight number when you book. If your arrival changes, message us so we can discuss the pickup timing with you.",
   art: (
     <ServicePhoto
       src="/images/airport.jpg"
@@ -38,7 +38,7 @@ const content: ServicePageContent = {
   // A transfer genuinely happens in this order, which is why it is numbered.
   sequence: [
     { label: "You book the flight number", copy: "It sits on the booking, not in a note someone has to read." },
-    { label: "We watch the arrival", copy: "A delay moves the pickup. You don't message us from the air." },
+    { label: "Share arrival details", copy: "Your flight number helps us discuss pickup timing if your plans change." },
     { label: "Driver is named", copy: "Their name and number reach you before you land." },
     { label: "Fare already agreed", copy: "Settled at booking, so nothing is negotiated at the kerb." },
   ],
@@ -58,8 +58,8 @@ const content: ServicePageContent = {
   },
   included: [
     {
-      title: "We follow the flight",
-      copy: "Your flight number sits on the booking. If you land late, the driver's timing shifts with it — you don't need to message us mid-transit.",
+      title: "Pickup coordination",
+      copy: "Your flight number sits on the booking. If your arrival changes, message us so we can discuss the pickup timing.",
     },
     {
       title: "Fare fixed before you fly",
@@ -86,7 +86,7 @@ const content: ServicePageContent = {
     {
       question: "What if my flight is delayed?",
       answer:
-        "We track the flight number you gave us and move the pickup to match the new arrival time. You don't need to do anything, though a WhatsApp message is always welcome if plans change entirely. You get 60 minutes of free waiting from the moment you actually land.",
+        "Share your flight number when booking. If the arrival time changes, contact us with your reference so we can discuss the pickup timing. Airport waiting terms are explained in the booking terms.",
     },
     {
       question: "Where does the driver meet me?",
@@ -106,10 +106,18 @@ const content: ServicePageContent = {
   ],
   schema: {
     name: "Airport Transfers",
-    description: "Airport pickups and drop-offs with flight tracking and 60 minutes of free waiting.",
+    description: "Airport pickups and drop-offs with flight details recorded for pickup coordination.",
     path: "/airport-rides",
   },
   bookHref: "/book?serviceType=airport",
+  routeLinks: [
+    { label: "Dubai Airport to Dubai Marina", href: "/transfers/dubai-airport-to-dubai-marina" },
+    { label: "Dubai Airport to Downtown Dubai", href: "/transfers/dubai-airport-to-downtown-dubai" },
+    { label: "Dubai Airport to Palm Jumeirah", href: "/transfers/dubai-airport-to-palm-jumeirah" },
+    { label: "Dubai Airport to Abu Dhabi", href: "/transfers/dubai-airport-to-abu-dhabi" },
+    { label: "Abu Dhabi Airport to Dubai", href: "/transfers/abu-dhabi-airport-to-dubai" },
+    { label: "Dubai Airport to Sharjah", href: "/transfers/dubai-airport-to-sharjah" },
+  ],
 };
 
 export default function AirportRidesPage() {

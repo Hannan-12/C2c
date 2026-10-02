@@ -55,7 +55,7 @@ function Promise({ title, copy, icon }: (typeof PROMISES)[number]) {
       */}
       <Image
         src={`/images/promises/${icon}.png`}
-        alt=""
+        alt={`${title} icon`}
         width={96}
         height={96}
         className="size-11 shrink-0"

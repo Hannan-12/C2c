@@ -79,6 +79,11 @@ const content: ServicePageContent = {
     path: "/rides",
   },
   bookHref: "/book?serviceType=ride",
+  routeLinks: [
+    { label: "Dubai to Abu Dhabi", href: "/transfers/dubai-to-abu-dhabi" },
+    { label: "Dubai Airport to Abu Dhabi", href: "/transfers/dubai-airport-to-abu-dhabi" },
+    { label: "Abu Dhabi Airport to Dubai", href: "/transfers/abu-dhabi-airport-to-dubai" },
+  ],
 };
 
 export default function RidesPage() {
