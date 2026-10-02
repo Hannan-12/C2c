@@ -7,7 +7,7 @@ import { pageMetadata, canonical, BUSINESS } from "@/lib/seo";
 import { FaqList } from "@/components/service-page";
 import { getTransferFareSummary } from "@/lib/transfer-pricing";
 import { formatTransferFare, transferFareJsonLd } from "@/lib/transfer-fare-summary";
-import { FREE_CANCEL_HOURS, FREE_CANCEL_HOURS_UNIT, WAIT_AIRPORT_MIN, WAIT_STANDARD_MIN } from "@/lib/service-terms";
+import { ROUTE_FEES_CONFIRMATION } from "@/lib/service-terms";
 
 export const revalidate = 3600;
 
@@ -91,11 +91,11 @@ export default async function TransferPage({ params }: Props) {
       <section className="reveal mt-16" aria-labelledby="transfer-included">
         <h2 id="transfer-included" className="display text-2xl sm:text-3xl mb-5">What is included</h2>
         <ul className="border-t border-line">
-          <li className="border-b border-line py-4 text-sm text-ink-muted">{isAirportPickup ? `${WAIT_AIRPORT_MIN} minutes of airport waiting, measured from when you land.` : `${WAIT_STANDARD_MIN} minutes of waiting at an ordinary pickup.`}</li>
-          <li className="border-b border-line py-4 text-sm text-ink-muted">Free cancellation up to {FREE_CANCEL_HOURS} {FREE_CANCEL_HOURS_UNIT} before pickup.</li>
+          <li className="border-b border-line py-4 text-sm text-ink-muted">Confirm waiting, cancellation and refund terms with the team before booking.</li>
+          <li className="border-b border-line py-4 text-sm text-ink-muted">{ROUTE_FEES_CONFIRMATION}</li>
           <li className="border-b border-line py-4 text-sm text-ink-muted">A person confirms availability and the fare with you over WhatsApp before booking.</li>
         </ul>
-        {/* TODO(client): confirm terminal pickup arrangements and toll inclusion before adding specifics. */}
+        {/* TODO(client): confirm terminal pickup arrangements before publishing specifics. */}
       </section>
       <section className="reveal mt-16" aria-labelledby="transfer-faqs">
         <h2 id="transfer-faqs" className="display text-2xl sm:text-3xl mb-7">Common questions</h2>

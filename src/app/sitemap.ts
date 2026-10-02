@@ -12,9 +12,9 @@ export const revalidate = 3600;
  *
  * Deliberately excludes /admin (gated) and /track/[reference] — those URLs are
  * unauthenticated and expose customer PII, so they must never be submitted for
- * indexing. /track itself is the code-entry form and is safe.
+ * indexing. The tracking lookup and reference pages are intentionally omitted.
  */
-const ROUTES = ["/", "/book", "/rides", "/airport-rides", "/transfers", "/city-tour", "/faqs", "/about-us", "/contact-us", "/terms", "/refunds", "/privacy", "/track", ...TRANSFERS.map(({ slug }) => `/transfers/${slug}`)];
+const ROUTES = ["/", "/book", "/rides", "/airport-rides", "/transfers", "/city-tour", "/faqs", "/about-us", "/contact-us", "/terms", "/refunds", "/privacy", ...TRANSFERS.map(({ slug }) => `/transfers/${slug}`)];
 
 /**
  * Route page dates are maintained explicitly so the transfer pages have a

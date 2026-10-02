@@ -5,7 +5,7 @@ import { formatPhone, whatsappLink } from "@/lib/format";
 export const metadata = pageMetadata({
   title: "Contact Us",
   description:
-    "Message Ride On Click on WhatsApp for bookings, changes and questions. Available any hour, any day across Dubai, Abu Dhabi and Sharjah.",
+    "Contact Ride On Click on WhatsApp about bookings, changes and questions for chauffeur rides across Dubai, Abu Dhabi and Sharjah.",
   path: "/contact-us",
 });
 
@@ -48,9 +48,8 @@ export default function ContactPage() {
           className="animate-rise text-ink-muted text-lg leading-relaxed mb-8"
           style={{ animationDelay: "220ms" }}
         >
-          WhatsApp is the fastest way to reach us — it&apos;s where bookings are
-          confirmed and where changes get handled. We answer{" "}
-          {BUSINESS.openingHoursLabel}.
+          WhatsApp is one way to contact us about bookings, changes and
+          questions.
         </p>
 
         <div

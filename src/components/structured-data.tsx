@@ -27,6 +27,7 @@ function JsonLd({ data }: { data: object }) {
  * rather than filled. `areaServed` carries the coverage in the meantime.
  */
 export function LocalBusinessSchema() {
+  const telephone = BUSINESS.whatsapp ? `+${BUSINESS.whatsapp}` : undefined;
   return (
     <JsonLd
       data={{
@@ -34,55 +35,31 @@ export function LocalBusinessSchema() {
         "@type": "LocalBusiness",
         "@id": `${siteUrl()}/#business`,
         name: BRAND,
-        // The trading name is what people search for; the registered entity is
-        // what matches the licence. Schema.org carries both, so neither has to
-        // be guessed from the other.
-        legalName: BUSINESS.legalEntity,
         url: siteUrl(),
         image: `${siteUrl()}/images/logo-badge.png`,
         logo: `${siteUrl()}/images/logo-badge.png`,
         description:
           "Chauffeur rides, airport transfers, city tours and hourly hire across Dubai, Abu Dhabi and Sharjah. Every booking is confirmed by a person.",
-        telephone: `+${BUSINESS.whatsapp}`,
+        ...(telephone ? { telephone } : {}),
         email: BUSINESS.email,
-        priceRange: "$$",
-        // TODO(client): add verified social profile URLs when provided.
-        sameAs: [],
         currenciesAccepted: "AED",
         paymentAccepted: "Cash, Credit Card, Bank Transfer",
         areaServed: BUSINESS.areasServed.map((area) => ({
           "@type": "City",
           name: area,
         })),
-        address: {
-          "@type": "PostalAddress",
-          addressCountry: "AE",
-          addressRegion: BUSINESS.areasServed[0],
-          // TODO(client): supply the registered street address.
-        },
-        // TODO(client): add verified latitude and longitude.
-        openingHoursSpecification: {
-          "@type": "OpeningHoursSpecification",
-          dayOfWeek: [
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday",
-            "Sunday",
-          ],
-          opens: "00:00",
-          closes: "23:59",
-        },
-        contactPoint: {
-          "@type": "ContactPoint",
-          contactType: "customer service",
-          telephone: `+${BUSINESS.whatsapp}`,
-          email: BUSINESS.email,
-          availableLanguage: ["English"],
-          areaServed: "AE",
-        },
+        ...(telephone || BUSINESS.email
+          ? {
+              contactPoint: {
+                "@type": "ContactPoint",
+                contactType: "customer service",
+                ...(telephone ? { telephone } : {}),
+                ...(BUSINESS.email ? { email: BUSINESS.email } : {}),
+                availableLanguage: ["English"],
+                areaServed: "AE",
+              },
+            }
+          : {}),
       }}
     />
   );

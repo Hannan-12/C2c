@@ -11,7 +11,7 @@ export const metadata = pageMetadata({
 
 /**
  * TODO(client): the best source for this page is your actual WhatsApp history
- * — the questions customers really ask, in their words. Several answers below
+ * The questions customers really ask, in their words. Several answers below
  * are deliberately non-committal where a policy has not been set yet
  * (cancellation fees, waiting-time allowance, child seats). Replace those with
  * the real policy before launch; they are marked in the data.
@@ -28,7 +28,7 @@ const GROUPS: { heading: string; items: { question: string; answer: string }[] }
       {
         question: "Is my booking confirmed straight away?",
         answer:
-          "Not immediately. Submitting the form sends a request, and a person checks availability before confirming. That's deliberate — it means a human has verified the car and driver rather than an algorithm assuming they exist.",
+          "Not immediately. Submitting the form sends a request, and a person checks availability before confirming. This means the car and driver are checked before confirmation.",
       },
       {
         question: "How far in advance can I book?",
@@ -47,7 +47,7 @@ const GROUPS: { heading: string; items: { question: string; answer: string }[] }
       {
         question: "Are you available at night?",
         answer:
-          "Yes. Bookings are taken and confirmed around the clock, every day of the week.",
+          "You can enter your preferred pickup time in the booking request. The team will confirm availability with you.",
       },
     ],
   },
@@ -72,7 +72,7 @@ const GROUPS: { heading: string; items: { question: string; answer: string }[] }
       {
         question: "Do prices change with demand?",
         answer:
-          "No. There's no surge multiplier — the fare you agree is the fare you pay.",
+          "No. There's no surge multiplier. The fare is agreed with you before the booking is confirmed.",
       },
     ],
   },
@@ -82,12 +82,12 @@ const GROUPS: { heading: string; items: { question: string; answer: string }[] }
       {
         question: "Can I cancel or change my booking?",
         answer:
-          "Cancel free of charge more than 12 hours before pickup, or any time before a driver is assigned. Once a driver is assigned, 50% of the fare applies, because they have turned other work down. Moving a booking to a different time is free if we can accommodate it. Full terms are on our Terms & Conditions page.",
+          "Contact us with your reference code to ask about changing or cancelling a booking. Check the terms confirmed for your booking for any applicable charges or refund arrangements.",
       },
       {
         question: "What if my flight is delayed?",
         answer:
-          "If you gave us your flight number, we track the arrival and move your pickup to match. You don't need to message us, though you're welcome to. Airport bookings include 60 minutes of free waiting, measured from when your flight actually lands rather than from the time you booked.",
+          "If your flight timing changes, contact us with your reference code so we can discuss the pickup arrangements. Ask the team to confirm any waiting terms for your booking.",
       },
       {
         question: "What happens if the driver doesn't arrive?",
@@ -118,7 +118,7 @@ const GROUPS: { heading: string; items: { question: string; answer: string }[] }
       {
         question: "Can you take a large group?",
         answer:
-          "Yes — the Van class seats seven with room for six bags. For larger groups, message us and we'll arrange more than one vehicle.",
+          "Yes. The Van class seats seven with room for six bags. For larger groups, message us and we'll arrange more than one vehicle.",
       },
     ],
   },
@@ -148,7 +148,7 @@ const ALL = GROUPS.flatMap((group) => group.items);
 
 export default function FaqsPage() {
   /**
-   * FAQPage structured data — the only page eligible for FAQ rich results.
+   * FAQPage structured data, the only page eligible for FAQ rich results.
    * Generated from the same array the page renders, so the markup can never
    * describe answers that differ from what a visitor actually sees, which is
    * the thing Google penalises.
@@ -195,8 +195,8 @@ export default function FaqsPage() {
           className="animate-rise text-ink-muted text-lg leading-relaxed"
           style={{ animationDelay: "220ms" }}
         >
-          If your question isn&apos;t here, message us on WhatsApp — a person
-          reads it, {BUSINESS.openingHoursLabel}.
+          If your question isn&apos;t here, message us on WhatsApp and the team
+          can respond.
         </p>
       </section>
 

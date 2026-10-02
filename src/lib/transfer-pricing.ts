@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { quoteAllCategories } from "@/lib/quote";
+import { quoteAllCategories, QuoteError, RoutesApiError } from "@/lib/quote";
 import { summarizeTransferQuotes, type TransferFareSummary } from "@/lib/transfer-fare-summary";
 export { formatTransferFare, transferFareJsonLd } from "@/lib/transfer-fare-summary";
 export type { TransferFareSummary } from "@/lib/transfer-fare-summary";
@@ -20,9 +20,15 @@ export const getTransferFareSummary = cache(async (
       dropoffLocation,
     });
     return summarizeTransferQuotes(quote);
-  } catch {
-    // Missing pricing, an unavailable database, or an unavailable route quote
-    // leaves the page useful without claiming a fare it could not verify.
-    return null;
+  } catch (error) {
+    // An empty/disabled fare configuration is an expected no-fare state.
+    // quoteAllCategories reports this as QuoteError only when there are no
+    // active pricing rows; other quote failures must fail ISR so its last good
+    // page remains cached.
+    if (error instanceof QuoteError && error.message === "No active vehicle pricing is configured") {
+      return null;
+    }
+    if (error instanceof RoutesApiError) throw error;
+    throw error;
   }
 });

@@ -73,7 +73,7 @@ const content: ServicePageContent = {
     {
       question: "Is a tour guide included?",
       answer:
-        "You're booking a car and driver rather than a guided tour. Drivers know the cities well and are happy to suggest stops, but they aren't licensed guides.",
+        "You're booking a car and driver rather than a guided tour. You can discuss possible stops with the team when arranging your trip.",
     },
     {
       question: "Can we cross between emirates?",

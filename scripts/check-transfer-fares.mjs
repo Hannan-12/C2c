@@ -50,4 +50,19 @@ assert.equal(summarizeTransferQuotes({
   ],
 }), null, "a zero fare must not be hidden behind another vehicle's price");
 
+for (const [fareEstimate, currency, label] of [
+  [Number.NaN, "AED", "NaN"],
+  [Number.POSITIVE_INFINITY, "AED", "positive infinity"],
+  [Number.NEGATIVE_INFINITY, "AED", "negative infinity"],
+  [-0.01, "AED", "negative"],
+  [1, "USD", "non-AED"],
+]) {
+  assert.equal(summarizeTransferQuotes({
+    distanceKm: 12,
+    durationMin: 24,
+    basis: "distance",
+    vehicles: [{ category: "comfort", fareEstimate, currency }],
+  }), null, `${label} fare must not create a display price or offer`);
+}
+
 console.log("Transfer fare display and JSON-LD are consistent.");

@@ -45,3 +45,7 @@ export const REFUND_REVIEW_DAYS_LABEL = "1–2";
 
 /** How long the customer's bank then takes to show it. Not ours to promise. */
 export const REFUND_BANK_DAYS_LABEL = "5–10";
+
+/** Neutral public wording shared wherever trip fees need confirmation. */
+export const ROUTE_FEES_CONFIRMATION =
+  "Confirm with the team before booking whether tolls, parking, airport gate fees or other trip expenses apply and how they are handled.";

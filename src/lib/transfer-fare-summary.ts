@@ -24,7 +24,11 @@ export type TransferFareSummary = {
 export function summarizeTransferQuotes(quote: AllCategoriesQuote): TransferFareSummary | null {
   // Do not skip a zero or non-AED active vehicle: either would make the
   // displayed minimum disagree with the cheapest vehicle in the quote.
-  if (quote.vehicles.some((vehicle) => vehicle.currency !== "AED" || vehicle.fareEstimate <= 0)) {
+  if (quote.vehicles.some((vehicle) =>
+    vehicle.currency !== "AED" ||
+    !Number.isFinite(vehicle.fareEstimate) ||
+    vehicle.fareEstimate <= 0
+  )) {
     return null;
   }
 

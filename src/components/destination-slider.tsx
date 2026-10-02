@@ -45,19 +45,19 @@ const DESTINATIONS: {
     name: "Burj Al Arab",
     copy: "Jumeirah beach road and the hotel drive.",
     image: "/images/destinations/burj-al-arab.jpg",
-    href: "/transfers/dubai-airport-to-downtown-dubai",
+    href: "/book?dropoff=Burj+Al+Arab%2C+Jumeirah",
   },
   {
     name: "Dubai Creek",
     copy: "Deira, the gold and spice souks, the abra stations.",
     image: "/images/destinations/dubai-creek.jpg",
-    href: "/transfers/dubai-airport-to-downtown-dubai",
+    href: "/book?dropoff=Dubai+Creek%2C+Deira",
   },
   {
     name: "Dubai International",
-    copy: "DXB terminals 1, 2 and 3. Met inside arrivals.",
+    copy: "Ask the team to confirm your airport pickup point.",
     image: "/images/airport.jpg",
-    href: "/transfers/dubai-airport-to-downtown-dubai",
+    href: "/airport-rides",
   },
   {
     name: "Abu Dhabi",

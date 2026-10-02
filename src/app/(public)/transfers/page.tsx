@@ -7,7 +7,7 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = pageMetadata({
   title: "Chauffeur Transfer Routes",
-  description: "Browse private chauffeur transfer routes between Dubai airports, Dubai, Abu Dhabi and Sharjah.",
+  description: "Browse private chauffeur routes for airport transfers and intercity rides between Dubai, Abu Dhabi and Sharjah, then request a fare before booking.",
   path: "/transfers",
 });
 

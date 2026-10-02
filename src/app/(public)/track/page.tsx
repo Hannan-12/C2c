@@ -14,6 +14,7 @@ export const metadata: Metadata = {
   title: "Track your booking",
   description:
     "Enter your booking reference code to see your ride status and driver details.",
+  robots: { index: false, follow: false },
   alternates: { canonical: canonical("/track") },
 };
 

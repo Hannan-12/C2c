@@ -36,8 +36,8 @@ const content: ServicePageContent = {
       copy: "You get the driver's name and number before pickup, not a moving dot on a map two minutes out.",
     },
     {
-      title: "Any hour",
-      copy: "Bookings are taken around the clock, including early-morning departures and late arrivals.",
+      title: "Requested pickup time",
+      copy: "Enter your preferred time and the team will confirm availability.",
     },
     {
       title: "Pay how you like",

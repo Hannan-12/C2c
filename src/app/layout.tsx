@@ -29,11 +29,11 @@ export const metadata: Metadata = {
   // are wrong everywhere except localhost.
   metadataBase: new URL(siteUrl()),
   title: {
-    default: `${BRAND} — Chauffeur & Airport Transfers in Dubai, Abu Dhabi & Sharjah`,
+    default: `Chauffeur & Airport Transfers in Dubai | ${BRAND}`,
     template: `%s | ${BRAND}`,
   },
   description:
-    "Book chauffeur rides, airport transfers, city tours and hourly cars across Dubai, Abu Dhabi and Sharjah. Instant fare estimates, confirmed over WhatsApp. Available 24/7.",
+    "Book chauffeur rides, airport transfers, city tours and hourly cars across Dubai, Abu Dhabi and Sharjah. Request a fare and confirm details on WhatsApp.",
   openGraph: {
     siteName: BRAND,
     locale: "en_AE",

@@ -6,14 +6,14 @@ import { canonical } from "@/lib/seo";
 
 /**
  * The homepage declared no canonical at all, inheriting a root layout that
- * sets none — so with www serving an identical copy, nothing on the page said
+ * sets none, so with www serving an identical copy, nothing on the page said
  * which of the two was the real one. Every other page carries a canonical
  * through pageMetadata; this one was missed precisely because it needs no
  * title or description of its own.
  *
  * Only the canonical is set here. Title, description and Open Graph are
  * deliberately left to the root layout, which already writes the homepage's
- * versions of them — repeating them would create a second place to keep in
+ * versions of them, repeating them would create a second place to keep in
  * step.
  */
 export const metadata = {
@@ -64,7 +64,7 @@ export default function HomePage() {
         sides, so the photograph starts at the very top of the content area and
         runs to both edges; the padding is then put back on the inner container
         so the text keeps its alignment with everything below. An image inset
-        from the edges reads as an illustration of the page — this one has to
+        from the edges reads as an illustration of the page, this one has to
         read as the page.
 
         next/image rather than a CSS background: it produces the responsive
@@ -88,7 +88,7 @@ export default function HomePage() {
             text.
 
             The pale version was the obvious first move and it was wrong: a
-            light wash over a photograph does not dim it, it greys it — the
+            light wash over a photograph does not dim it, it greys it, the
             blacks lift, the colour drains, and the picture reads as faded
             rather than as a background. Darkening does the opposite. It holds
             the blacks, keeps the car and the uniform saturated, and gives light
@@ -135,7 +135,7 @@ export default function HomePage() {
               >
                 No dispatch algorithm deciding who turns up. Send us your route
                 and someone confirms the driver, the car and the fare with you
-                directly — usually within the hour.
+                directly.
               </p>
 
               <div
@@ -164,7 +164,7 @@ export default function HomePage() {
       </section>
 
       {/*
-        A single clickable strip rather than a card grid — one offer, so it
+        A single clickable strip rather than a card grid, one offer, so it
         reads as an announcement rather than another tile competing with the
         services below it.
       */}
@@ -182,7 +182,7 @@ export default function HomePage() {
             Booking a return? Get 20% off the ride back.
           </p>
           <p className="text-sm text-ink/70 mt-0.5">
-            The discount is applied automatically — just pick your vehicle and the reduced fare shows on the spot.
+            The discount is applied automatically. Pick your vehicle and the reduced fare shows on the spot.
           </p>
         </div>
         <span
@@ -194,13 +194,13 @@ export default function HomePage() {
         </span>
       </Link>
 
-      {/* Ruled index rather than cards — different rhythm from the hero above. */}
+      {/* Ruled index rather than cards, different rhythm from the hero above. */}
       <section className="reveal mt-20" aria-labelledby="services-heading">
         <h2 id="services-heading" className="display text-2xl sm:text-3xl mb-1.5">
           What we run
         </h2>
         <p className="text-ink-muted mb-7">
-          Three services, all confirmed the same way. Always a luxury car with a professional driver — never self-drive.
+          Three chauffeur services, each confirmed with you before booking.
         </p>
 
         <ul className="border-t border-line">
@@ -252,7 +252,7 @@ export default function HomePage() {
         </p>
       </section>
 
-      {/* Numbered because the order is real — each step depends on the last. */}
+      {/* Numbered because the order is real, each step depends on the last. */}
       <section className="reveal mt-20 mb-6" aria-labelledby="how-heading">
         <h2 id="how-heading" className="display text-2xl sm:text-3xl mb-7">
           How a booking works
